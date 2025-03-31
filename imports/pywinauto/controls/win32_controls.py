@@ -677,6 +677,7 @@ class EditWrapper(hwndwrapper.HwndWrapper):
         r"WindowsForms\d*\.EDIT\..*",
         "ThunderTextBox",
         "ThunderRT6TextBox",
+        "DOUBLEEDIT"
         ]
     has_title = False
 

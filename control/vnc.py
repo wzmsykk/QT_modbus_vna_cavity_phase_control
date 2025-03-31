@@ -35,5 +35,8 @@ def convert_mark_result(result:str):
     fresult=float(result.split(",")[0])
     return fresult
 
-
+def get_phase(inst:Resource):
+    result = query_inst_mark(inst)
+    fresult=convert_mark_result(result)
+    return fresult
 # print(f"S21:{fresult}dB")

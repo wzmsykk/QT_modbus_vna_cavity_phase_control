@@ -142,10 +142,9 @@ class HwndMeta(BaseMeta):
                     return wrapper
 
         # if it is a dialog then override the wrapper we found
-        # and make it a DialogWrapper
+        # and make it a DialogWrsapper
         if handleprops.is_toplevel_window(element.handle):
             wrapper_match = DialogWrapper
-
         if wrapper_match is None:
             wrapper_match = HwndWrapper
         return wrapper_match
