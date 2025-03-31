@@ -6,6 +6,7 @@ class ConvertfApp():
         self.app=self.start_app()
         self.ctype="a2v"
         self.set_temp_celsius()
+        self.set_pressure_mBar()
         self.set_convert_type(ctype=self.ctype)
         pass
     def start_app(self):
@@ -19,6 +20,8 @@ class ConvertfApp():
         self.app["Resonant Frequency Conversion"]['Stop programButton'].click()
     def set_temp_celsius(self):
         self.app["Resonant Frequency Conversion"]['degrees C'].click()
+    def set_pressure_mBar(self):
+        self.app["Resonant Frequency Conversion"]['mBarRadioButton'].click()
     def get_rel_humid(self):
         return self.app["Resonant Frequency Conversion"]["Rel. humidity (%):Edit"].texts()[0]
     def set_rel_humid(self,rel_humid_percent:float):

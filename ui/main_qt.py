@@ -40,11 +40,12 @@ class MainDialog(QDialog):
         self.ui.pushButton_deldata.clicked.connect(self.deleteline)
         self.ui.pushButton_export.clicked.connect(self.save_csv)
         self.ui.pushButton_addmov.clicked.connect(self.addmov)
+        self.ui.pushButton_freqcor.clicked.connect(self.freqcor)
         self.client: modbus.ModbusClient = None
         self.rm:vnc.ResourceManager = None
         self.inst:vnc.Resource = None
         self.app:convertf.ConvertfApp = None
-        self.columnname=["时间","腔ID","湿度","气压","腔温","气温","校准频率","VNA读取相位","输入相位","腔间相移","预期相移","累计相移"]
+        self.columnname=["时间","腔ID","湿度(%)","气压(mBar)","腔温(℃)","气温(℃)","校准频率(MHz)","VNA读取相位","输入相位","腔间相移","预期相移","累计相移"]
         #self.data = pd.DataFrame(columns=self.columnname)
         
         #self.model = dataprocess.PandasModel(self.data)
@@ -117,6 +118,16 @@ class MainDialog(QDialog):
         except:
             return
         
+    def freqcor(self):
+        self.app.set_rel_humid(float(self.ui.lineEdit_humidity.text()))
+        self.app.set_amb_pressure(float(self.ui.lineEdit_airpressure.text()))
+        self.app.set_cav_temp(float(self.ui.lineEdit_cavtemp.text()))
+        self.app.set_amb_temp(float(self.ui.lineEdit_airtemp.text()))
+        self.app.set_cav_freq(float(self.ui.lineEdit_measuredfreq.text()))
+
+        self.app.update_result()
+        self.ui.lineEdit_freq_corred.setText(str(self.app.get_results()[0]))
+        self.ui.lineEdit_freqoffset.setText(str(self.app.get_results()[1]))
 
     def saveline(self):
         time=datetime.datetime.now()
@@ -226,6 +237,7 @@ class MainDialog(QDialog):
         self.ui.lineEdit_cavtemp.setText(str(self.app.get_cav_temp()))
         self.ui.lineEdit_airtemp.setText(str(self.app.get_amb_temp()))
         self.ui.lineEdit_measuredfreq.setText(str(self.app.get_cav_freq()))
+        self.app.update_result()
         self.ui.lineEdit_freq_corred.setText(str(self.app.get_results()[0]))
         self.ui.lineEdit_freqoffset.setText(str(self.app.get_results()[1]))
     async def start(self):
