@@ -4,9 +4,10 @@ from pywinauto import application
 class ConvertfApp():
     def __init__(self):
         self.app=self.start_app()
-        self.ctype="a2v"
+        self.ctype="v2a"
         self.set_temp_celsius()
-        self.set_pressure_mBar()
+        self.set_pressure_Pa()
+        self.set_air()
         self.set_convert_type(ctype=self.ctype)
         pass
     def start_app(self):
@@ -22,6 +23,12 @@ class ConvertfApp():
         self.app["Resonant Frequency Conversion"]['degrees C'].click()
     def set_pressure_mBar(self):
         self.app["Resonant Frequency Conversion"]['mBarRadioButton'].click()
+    def set_pressure_Pa(self):
+        self.app["Resonant Frequency Conversion"]['PaRadioButton'].click()
+    def set_air(self):
+        self.app["Resonant Frequency Conversion"]["AirRadioButton"].click()
+    def set_nitrogen(self):
+        self.app["Resonant Frequency Conversion"]["NitrogenRadioButton"].click()
     def get_rel_humid(self):
         return self.app["Resonant Frequency Conversion"]["Rel. humidity (%):Edit"].texts()[0]
     def set_rel_humid(self,rel_humid_percent:float):
@@ -51,19 +58,22 @@ class ConvertfApp():
     def set_cav_temp(self,temp:float):
         self.app["Resonant Frequency Conversion"]["Edit6"].set_text(str(temp))
 
-    def get_cav_freq(self):
+    def get_origin_freq(self):
         return self.app["Resonant Frequency Conversion"]["Edit5"].texts()[0]      
-    def set_cav_freq(self,freq:float):
+    def set_origin_freq(self,freq:float):
         self.app["Resonant Frequency Conversion"]["Edit5"].set_text(str(freq))
         
-    def equal_cav_gas_temp(self,cond:bool=False):
+    def set_temp_restraint_cond(self,cond:bool=False):
         if cond:
             self.app["Resonant Frequency Conversion"]["CheckBox"].check()
         else:
             self.app["Resonant Frequency Conversion"]["CheckBox"].uncheck()
+    def get_temp_restraint_cond(self):
+        cond=self.app["Resonant Frequency Conversion"]["CheckBox"].is_checked()
+        return cond
     def update_result(self):
         self.app["Resonant Frequency Conversion"]['Update resultsButton'].click()
-    def set_convert_type(self,ctype="a2v"):
+    def set_convert_type(self,ctype="v2a"):
         self.ctype=ctype
         if ctype=="v2a":
             ####vaccum to ambient

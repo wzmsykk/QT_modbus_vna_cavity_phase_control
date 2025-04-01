@@ -9,6 +9,7 @@ from .main_dlg import Ui_Dialog
 import control.modbus as modbus
 import control.vnc as vnc
 import control.convertf as convertf
+import control.dataprocess as dataprocess
 import csv
 
 def is_file_locked(filepath):
@@ -34,18 +35,13 @@ class MainDialog(QDialog):
 
         self.ui.setupUi(self)
 
-        self.ui.pushButton_setpos.clicked.connect(self.setpos)
-        self.ui.pushButton_resetpos.clicked.connect(self.resetpos)
-        self.ui.pushButton_savecurr.clicked.connect(self.saveline)
-        self.ui.pushButton_deldata.clicked.connect(self.deleteline)
-        self.ui.pushButton_export.clicked.connect(self.save_csv)
-        self.ui.pushButton_addmov.clicked.connect(self.addmov)
-        self.ui.pushButton_freqcor.clicked.connect(self.freqcor)
+        self._set_signal_slots()
         self.client: modbus.ModbusClient = None
         self.rm:vnc.ResourceManager = None
         self.inst:vnc.Resource = None
         self.app:convertf.ConvertfApp = None
-        self.columnname=["时间","腔ID","湿度(%)","气压(mBar)","腔温(℃)","气温(℃)","校准频率(MHz)","VNA读取相位","输入相位","腔间相移","预期相移","累计相移"]
+        self.dh:dataprocess.DataHelper = dataprocess.DataHelper()
+        self.columnname=["时间","腔ID","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","校准频率(MHz)","VNA读取相位","输入相位","腔间相移","预期相移","累计相移"]
         #self.data = pd.DataFrame(columns=self.columnname)
         
         #self.model = dataprocess.PandasModel(self.data)
@@ -56,7 +52,20 @@ class MainDialog(QDialog):
 
 
 
-        self.query_delay=1
+        self.query_delay=1 ## in seconds
+    def _set_signal_slots(self):
+        self.ui.pushButton_setpos.clicked.connect(self.setpos)
+        self.ui.pushButton_resetpos.clicked.connect(self.resetpos)
+        self.ui.pushButton_savecurr.clicked.connect(self.saveline)
+        self.ui.pushButton_deldata.clicked.connect(self.deleteline)
+        self.ui.pushButton_export.clicked.connect(self.save_csv)
+        self.ui.pushButton_addmov.clicked.connect(self.addmov)
+        self.ui.pushButton_freqcor.clicked.connect(self.freqcor)
+        self.ui.radioButton_air.clicked.connect(self.set_airtype)
+        self.ui.radioButton_nitro.clicked.connect(self.set_airtype)
+        self.ui.checkBox_cavtempasairtemp.clicked.connect(self.set_temp_constraint)
+        self.ui.pushButton_setinputphase.clicked.connect(self.set_inputphase)
+        self.ui.checkBox_lockinputphase.clicked.connect(self.lock_inputphase)
 
     def disable_motor_buttons(self):
         self.ui.pushButton_setpos.setEnabled(False)
@@ -67,6 +76,8 @@ class MainDialog(QDialog):
         self.ui.pushButton_resetpos.setEnabled(True)
         self.ui.pushButton_addmov.setEnabled(True)
 
+    def update_phase_retarget(self):
+        pass
     def get_input_coupler_phase(self):
         return 18.37
     def get_phase_diff_between_cav(self):
@@ -117,13 +128,50 @@ class MainDialog(QDialog):
             return
         except:
             return
-        
+    def set_airtype(self):
+        if self.app is None:
+            return
+        if self.ui.radioButton_air.isChecked():
+            self.app.set_air()
+        elif self.ui.radioButton_nitro.isChecked():
+            self.app.set_nitrogen()
+    def set_temp_constraint(self):
+        if self.app is None:
+            return
+        cond=False
+        if self.ui.checkBox_cavtempasairtemp.isChecked():
+            cond=True
+        self.ui.lineEdit_cavtemp.setEnabled(not cond)
+        self.app.set_temp_restraint_cond(cond=cond)
+    def get_temp_constraint(self):
+        if self.app is None:
+            return False
+        cond=self.app.get_temp_restraint_cond()
+        self.ui.checkBox_cavtempasairtemp.setChecked(cond)
+        self.ui.lineEdit_cavtemp.setEnabled(not cond)
+        return cond
+    def set_inputphase(self):
+        self.dh.input_coupler_phase=float(self.ui.lineEdit_phase.text())
+        self.get_inputphase()
+    def get_inputphase(self):
+        p=self.dh.input_coupler_phase
+        self.ui.lineEdit_inputphase.setText(str(p))
+        return p
+    def lock_inputphase(self):
+        cond=self.ui.checkBox_lockinputphase.isChecked()
+        self.ui.pushButton_setinputphase.setEnabled(not cond)
     def freqcor(self):
         self.app.set_rel_humid(float(self.ui.lineEdit_humidity.text()))
         self.app.set_amb_pressure(float(self.ui.lineEdit_airpressure.text()))
+
+        if self.app.get_temp_restraint_cond():
+            self.ui.lineEdit_cavtemp.setText(self.ui.lineEdit_airtemp.text())
+
         self.app.set_cav_temp(float(self.ui.lineEdit_cavtemp.text()))
         self.app.set_amb_temp(float(self.ui.lineEdit_airtemp.text()))
-        self.app.set_cav_freq(float(self.ui.lineEdit_measuredfreq.text()))
+        
+        
+        self.app.set_origin_freq(float(self.ui.lineEdit_originfreq.text()))
 
         self.app.update_result()
         self.ui.lineEdit_freq_corred.setText(str(self.app.get_results()[0]))
@@ -236,7 +284,8 @@ class MainDialog(QDialog):
         self.ui.lineEdit_airpressure.setText(str(self.app.get_amb_pressure()))
         self.ui.lineEdit_cavtemp.setText(str(self.app.get_cav_temp()))
         self.ui.lineEdit_airtemp.setText(str(self.app.get_amb_temp()))
-        self.ui.lineEdit_measuredfreq.setText(str(self.app.get_cav_freq()))
+        self.ui.lineEdit_originfreq.setText(str(self.app.get_origin_freq()))
+        self.get_temp_constraint()
         self.app.update_result()
         self.ui.lineEdit_freq_corred.setText(str(self.app.get_results()[0]))
         self.ui.lineEdit_freqoffset.setText(str(self.app.get_results()[1]))
