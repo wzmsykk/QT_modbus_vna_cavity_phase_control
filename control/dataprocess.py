@@ -14,11 +14,11 @@ class CavityPhaseModel(QStandardItemModel):
         self.current_cavity_id:int=0
         self.previous_cavity_id:int=0
         self._cavity_id_name_string:str="腔ID"
-        self._cavity_phase_name_string:str="VNA测量相位"
+        self._cavity_phase_name_string:str="腔相位"
+        self._cavity_position_name_string:str="腔位置"
 
-
-        self._columnname_ref=["时间","腔ID","输入相位","VNA测量相位","单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)"]
-        self.columnname=["时间",self._cavity_id_name_string,"输入相位",self._cavity_phase_name_string,"单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)"]
+        self._columnname_ref=["时间","腔ID","输入相位","腔相位","单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)","腔位置"]
+        self.columnname=["时间",self._cavity_id_name_string,"输入相位",self._cavity_phase_name_string,"单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)",self._cavity_position_name_string]
         assert self._list_eq(self._columnname_ref,self.columnname)
     def _list_eq(self,list1,list2):
         if len(list1)!=len(list2):
@@ -97,6 +97,8 @@ class CavityPhaseModel(QStandardItemModel):
         return index
     def _cavity_id_column_index(self):
         return self._get_column_index(self._cavity_id_name_string)
+    def _cavity_position_column_index(self):
+        return self._get_column_index(self._cavity_position_name_string)
     def _cavity_phase_column_index(self):
         return self._get_column_index(self._cavity_phase_name_string)
     def _search_index_from_cavity_id(self,cavity_id):
@@ -123,10 +125,23 @@ class CavityPhaseModel(QStandardItemModel):
             else:
                 return prefered_ins_index
         return rowCount ###should be in new line
+    def cavity_id_exists_in_data(self,cavity_id):
+        result=self._search_index_from_cavity_id(cavity_id)
+        if result is None:
+            return False
+        else:
+            return True
+    def get_row_by_cavity_id(self,cavity_id):
+        rowidx=self._search_index_from_cavity_id(cavity_id)
+        for i in range(len(self.columnname)):
+            pass
+        return 
     def get_cavity_id_from_row(self,row:list[QStandardItem]):
         cindex=self._cavity_id_column_index()
         return int(row[cindex].text())
-
+    def get_cavity_position_from_row(self,row:list[QStandardItem]):
+        cindex=self._cavity_position_column_index()
+        return int(row[cindex].text())
     def calc_phase_shift(self,cavity_id,cav_phase):
         if cavity_id==1:
             shift=self.input_coupler_phase-cav_phase
