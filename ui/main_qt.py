@@ -40,24 +40,28 @@ class MainDialog(QDialog):
         self.rm:vnc.ResourceManager = None
         self.inst:vnc.Resource = None
         self.app:convertf.ConvertfApp = None
-        self.dh:dataprocess.DataHelper = dataprocess.DataHelper()
-        self.columnname=["时间","腔ID","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","校准频率(MHz)","VNA读取相位","输入相位","腔间相移","预期相移","累计相移"]
+        
         #self.data = pd.DataFrame(columns=self.columnname)
         
         #self.model = dataprocess.PandasModel(self.data)
-        self.model =QStandardItemModel()
-        self.model.setColumnCount(len(self.columnname))
-        self.model.setHorizontalHeaderLabels(self.columnname)
+        self.model =dataprocess.CavityPhaseModel()
+        self.model.setColumnCount(len(self.model.columnname))
+        self.model.setHorizontalHeaderLabels(self.model.columnname)
         self.ui.tableView_data.setModel(self.model)
 
+        self.columnname=["时间","腔ID","输入相位","VNA测量相位","单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)"]
+        assert self.model._list_eq(self.model.columnname,self.columnname)
 
 
+
+        
         self.query_delay=1 ## in seconds
+
     def _set_signal_slots(self):
         self.ui.pushButton_setpos.clicked.connect(self.setpos)
         self.ui.pushButton_resetpos.clicked.connect(self.resetpos)
         self.ui.pushButton_savecurr.clicked.connect(self.saveline)
-        self.ui.pushButton_deldata.clicked.connect(self.deleteline)
+        self.ui.pushButton_deldata.clicked.connect(self.delete_last_line)
         self.ui.pushButton_export.clicked.connect(self.save_csv)
         self.ui.pushButton_addmov.clicked.connect(self.addmov)
         self.ui.pushButton_freqcor.clicked.connect(self.freqcor)
@@ -66,6 +70,7 @@ class MainDialog(QDialog):
         self.ui.checkBox_cavtempasairtemp.clicked.connect(self.set_temp_constraint)
         self.ui.pushButton_setinputphase.clicked.connect(self.set_inputphase)
         self.ui.checkBox_lockinputphase.clicked.connect(self.lock_inputphase)
+        self.ui.spinBox_cavid.valueChanged.connect(self.update_phase_retarget)
 
     def disable_motor_buttons(self):
         self.ui.pushButton_setpos.setEnabled(False)
@@ -76,8 +81,40 @@ class MainDialog(QDialog):
         self.ui.pushButton_resetpos.setEnabled(True)
         self.ui.pushButton_addmov.setEnabled(True)
 
+    def get_cav_id(self):
+        return int(self.ui.spinBox_cavid.text())
+    def ui_check_input_phase_data_available(self):
+        if self.ui.spinBox_cavid.value()>0 and not self.ui.checkBox_lockinputphase.isChecked():
+            QMessageBox.critical(None, "错误", 
+                            f"未设定输入耦合器相位，请设置并勾选完成后重试")
+            self.ui.spinBox_cavid.setValue(0)
+            self.model.set_current_cavity_id(0)
+            return
     def update_phase_retarget(self):
-        pass
+        self.ui_check_input_phase_data_available()
+        cavid=int(self.ui.spinBox_cavid.value())
+        if cavid==0:
+            return
+        self.model.set_current_cavity_id(cavid)
+        self.saveline_reduced()
+        try:
+            tgt=self.model.target_phase_single_cell(cavid)
+            self.ui.lineEdit_targetphase_singlecell.setText(str(tgt))
+            shift=self.model.calc_phase_shift(cavid,float(vnc.get_phase(self.inst)))
+            self.ui.lineEdit_single_cell_phase_shift.setText(str(shift))
+            tgt=self.model.target_phase_sum(cavid)
+            self.ui.lineEdit_targetphase_sum.setText(str(tgt))
+            tgt=self.model.target_phase_final(cavid)
+            self.ui.lineEdit_targetphase_average.setText(str(tgt))
+        except ValueError as err:
+            QMessageBox.critical(None, "错误", 
+                            err.args[0])
+            cavid=self.model.recover_cavity_id()
+            self.ui.spinBox_cavid.setValue(cavid)
+            return
+        
+
+        return
     def get_input_coupler_phase(self):
         return 18.37
     def get_phase_diff_between_cav(self):
@@ -151,15 +188,17 @@ class MainDialog(QDialog):
         self.ui.lineEdit_cavtemp.setEnabled(not cond)
         return cond
     def set_inputphase(self):
-        self.dh.input_coupler_phase=float(self.ui.lineEdit_phase.text())
+        self.model.input_coupler_phase=float(self.ui.lineEdit_phase.text())
         self.get_inputphase()
     def get_inputphase(self):
-        p=self.dh.input_coupler_phase
+        p=self.model.input_coupler_phase
         self.ui.lineEdit_inputphase.setText(str(p))
         return p
     def lock_inputphase(self):
         cond=self.ui.checkBox_lockinputphase.isChecked()
         self.ui.pushButton_setinputphase.setEnabled(not cond)
+        self.ui.lineEdit_inputphase.setReadOnly(cond)
+
     def freqcor(self):
         self.app.set_rel_humid(float(self.ui.lineEdit_humidity.text()))
         self.app.set_amb_pressure(float(self.ui.lineEdit_airpressure.text()))
@@ -172,33 +211,68 @@ class MainDialog(QDialog):
         
         
         self.app.set_origin_freq(float(self.ui.lineEdit_originfreq.text()))
-
+        self.app.set_vac_op_temp(float(self.ui.lineEdit_operate_temp.text()))
         self.app.update_result()
         self.ui.lineEdit_freq_corred.setText(str(self.app.get_results()[0]))
         self.ui.lineEdit_freqoffset.setText(str(self.app.get_results()[1]))
 
-    def saveline(self):
+    def saveline_reduced(self):
+        ###save data with no calcs
+        self.ui_check_input_phase_data_available()
         time=datetime.datetime.now()
-        # columnname=["时间","腔ID","湿度","气压","腔温","气温","校准频率","VNA读取相位","输入相位","腔间相移","预期相移","累计相移"]
-        newline=[]
-        newline.append(str(time))##时间
-        newline.append(self.ui.spinBox_cavid.value())##腔ID
-        newline.append(self.app.get_rel_humid())##湿度
-        newline.append(self.app.get_amb_pressure())##气压
-        newline.append(self.app.get_cav_temp())##腔温
-        newline.append(self.app.get_amb_temp())##气温
-        newline.append(self.app.get_results()[0])##校准频率
-        newline.append(vnc.get_phase(self.inst))###VNA读取相位
-        newline.append(self.get_input_coupler_phase())##输入相位
-        newline.append(self.get_phase_diff_between_cav())##腔间相移
-        newline.append(self.get_expected_phase_offset())##预期相移
-        newline.append(self.total_phase_offset())##累计相移
-        inserted=[QStandardItem(str(item)) for item in newline]
-        self.model.appendRow(inserted)
-    def deleteline(self):
+        columnname=["时间","腔ID","输入相位","VNA测量相位","单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)"]
+        assert self.model._list_eq(columnname,self.columnname)
+        cavid=self.ui.spinBox_cavid.value()
+        data=self.model.create_empty_dict()
+        data["时间"]=str(time)
+        data["腔ID"]=cavid
+        data["输入相位"]=self.ui.lineEdit_inputphase.text()
+        data["VNA测量相位"]=self.ui.lineEdit_phase.text()
+        data["校准频率(MHz)"]=self.ui.lineEdit_freq_corred.text()
+        data["湿度(%)"]=self.ui.lineEdit_humidity.text()
+        data["气压(Pa)"]=self.ui.lineEdit_airpressure.text()
+        data["腔温(℃)"]=self.ui.lineEdit_cavtemp.text()
+        data["气温(℃)"]=self.ui.lineEdit_airtemp.text()
+        data["真空频率(MHz)"]=self.ui.lineEdit_originfreq.text()
+        data["工作温度(℃)"]=self.ui.lineEdit_operate_temp.text()
+        self.model.update_cav_data_by_dict(cavid,data)
+        return
+    def saveline(self):
+        ###save data with all calcs
+        self.ui_check_input_phase_data_available()
+        time=datetime.datetime.now()
+        columnname=["时间","腔ID","输入相位","VNA测量相位","单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)"]
+        assert self.model._list_eq(columnname,self.columnname)
+        cavid=self.ui.spinBox_cavid.value()
+        data=self.model.create_empty_dict()
+        data["时间"]=str(time)
+        data["腔ID"]=cavid
+        data["输入相位"]=self.ui.lineEdit_inputphase.text()
+        data["VNA测量相位"]=self.ui.lineEdit_phase.text()
+        data["单腔相移"]=self.ui.lineEdit_single_cell_phase_shift.text()
+        data["目标相位-累计相移"]=self.ui.lineEdit_targetphase_sum.text()
+        data["目标相位-单腔相移"]=self.ui.lineEdit_targetphase_singlecell.text()
+        data["目标相位"]=self.ui.lineEdit_targetphase_average.text()
+        data["单腔相移误差"]=0
+        data["累计相移误差"]=0
+        data["校准频率(MHz)"]=self.ui.lineEdit_freq_corred.text()
+        data["湿度(%)"]=self.ui.lineEdit_humidity.text()
+        data["气压(Pa)"]=self.ui.lineEdit_airpressure.text()
+        data["腔温(℃)"]=self.ui.lineEdit_cavtemp.text()
+        data["气温(℃)"]=self.ui.lineEdit_airtemp.text()
+        data["真空频率(MHz)"]=self.ui.lineEdit_originfreq.text()
+        data["工作温度(℃)"]=self.ui.lineEdit_operate_temp.text()
+        self.model.update_cav_data_by_dict(cavid,data)
+        return
+    def delete_last_line(self):
         rowCount=self.model.rowCount()
+
         if rowCount>0:
-            self.model.removeRow(rowCount-1)
+            row=self.model.takeRow(rowCount-1)
+        removed_id=self.model.get_cavity_id_from_row(row)
+        curr_id=int(self.ui.spinBox_cavid.value())
+        if removed_id==curr_id:
+            self.ui.spinBox_cavid.setValue(int(self.ui.spinBox_cavid.value())-1)
     def save_csv(self):
         
         # 获取模型
@@ -267,17 +341,21 @@ class MainDialog(QDialog):
             self.ui.lineEdit_realpos.setText(str(await modbus.read_float(self.client,"PC_M6_Act_Pos1")))
             self.ui.lineEdit_realvec.setText(str(await modbus.read_float(self.client,"PC_M6_Act_Vel1")))
             
-            print("query_loc:",self.ui.lineEdit_realpos.text())
-            print("now sleep")
+            # print("query_loc:",self.ui.lineEdit_realpos.text())
+            # print("now sleep")
             await asyncio.sleep(self.query_delay)
     async def query_vnc_period(self):
         while True:
             if self.inst is None:
                 break
-            print("query_vnc_period")
+            # print("query_vnc_period")
             fresult=vnc.get_phase(self.inst)
-            self.ui.lineEdit_phase.setText(str(fresult))
-            print("query_vnc:",self.ui.lineEdit_phase.text())
+            if not self.ui.checkBox_freeze_phase.isChecked():
+                self.ui.lineEdit_phase.setText(str(fresult))
+                self.ui.lineEdit_phase.setStyleSheet("")
+                # print("query_vnc:",self.ui.lineEdit_phase.text())
+            else:
+                self.ui.lineEdit_phase.setStyleSheet("color: rgb(255, 0, 0);")
             await asyncio.sleep(self.query_delay)
     async def query_app_first(self):
         self.ui.lineEdit_humidity.setText(str(self.app.get_rel_humid()))
@@ -285,6 +363,7 @@ class MainDialog(QDialog):
         self.ui.lineEdit_cavtemp.setText(str(self.app.get_cav_temp()))
         self.ui.lineEdit_airtemp.setText(str(self.app.get_amb_temp()))
         self.ui.lineEdit_originfreq.setText(str(self.app.get_origin_freq()))
+        self.ui.lineEdit_operate_temp.setText(str(self.app.get_vac_op_temp()))
         self.get_temp_constraint()
         self.app.update_result()
         self.ui.lineEdit_freq_corred.setText(str(self.app.get_results()[0]))

@@ -117,7 +117,7 @@
            <item row="4" column="1">
             <widget class="QLineEdit" name="lineEdit_originfreq"/>
            </item>
-           <item row="5" column="0">
+           <item row="6" column="0">
             <widget class="QRadioButton" name="radioButton_air">
              <property name="text">
               <string>空气</string>
@@ -130,7 +130,7 @@
              </attribute>
             </widget>
            </item>
-           <item row="5" column="1">
+           <item row="6" column="1">
             <widget class="QRadioButton" name="radioButton_nitro">
              <property name="text">
               <string>氮气</string>
@@ -139,6 +139,16 @@
               <string notr="true">buttonGroup</string>
              </attribute>
             </widget>
+           </item>
+           <item row="5" column="0">
+            <widget class="QLabel" name="label_22">
+             <property name="text">
+              <string>真空工作温度(℃)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="1">
+            <widget class="QLineEdit" name="lineEdit_operate_temp"/>
            </item>
           </layout>
          </item>
@@ -213,41 +223,12 @@
          <item>
           <widget class="QCheckBox" name="checkBox_lockinputphase">
            <property name="text">
-            <string>锁定初始相位</string>
+            <string>初始相位设定完成</string>
            </property>
           </widget>
          </item>
          <item>
           <layout class="QFormLayout" name="formLayout_3">
-           <property name="formAlignment">
-            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
-           </property>
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_13">
-             <property name="font">
-              <font>
-               <weight>75</weight>
-               <bold>true</bold>
-              </font>
-             </property>
-             <property name="text">
-              <string>当前相位</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <widget class="QLineEdit" name="lineEdit_phase">
-             <property name="font">
-              <font>
-               <weight>75</weight>
-               <bold>true</bold>
-              </font>
-             </property>
-             <property name="readOnly">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
            <item row="0" column="0">
             <widget class="QLabel" name="label_7">
              <property name="text">
@@ -261,16 +242,23 @@
               <string>0</string>
              </property>
              <property name="readOnly">
-              <bool>true</bool>
+              <bool>false</bool>
              </property>
             </widget>
            </item>
           </layout>
          </item>
          <item>
-          <widget class="QPushButton" name="pushButton_savecurrphase">
+          <widget class="QCheckBox" name="checkBox_freeze_phase">
            <property name="text">
-            <string>保存当前相位</string>
+            <string>固定当前相位(停止更新VNC)</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_calc_target_phase">
+           <property name="text">
+            <string>计算目标相位</string>
            </property>
           </widget>
          </item>
@@ -453,9 +441,20 @@
             </widget>
            </item>
            <item row="2" column="1">
-            <widget class="QLineEdit" name="lineEdit_targetphase_singlecell"/>
+            <widget class="QLineEdit" name="lineEdit_phase">
+             <property name="font">
+              <font>
+               <pointsize>12</pointsize>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="readOnly">
+              <bool>false</bool>
+             </property>
+            </widget>
            </item>
-           <item row="2" column="0">
+           <item row="4" column="0">
             <widget class="QLabel" name="label_8">
              <property name="font">
               <font>
@@ -469,7 +468,14 @@
              </property>
             </widget>
            </item>
-           <item row="3" column="0">
+           <item row="4" column="1">
+            <widget class="QLineEdit" name="lineEdit_targetphase_singlecell">
+             <property name="readOnly">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="0">
             <widget class="QLabel" name="label_18">
              <property name="font">
               <font>
@@ -483,10 +489,14 @@
              </property>
             </widget>
            </item>
-           <item row="3" column="1">
-            <widget class="QLineEdit" name="lineEdit_targetphase_sum"/>
+           <item row="5" column="1">
+            <widget class="QLineEdit" name="lineEdit_targetphase_sum">
+             <property name="readOnly">
+              <bool>true</bool>
+             </property>
+            </widget>
            </item>
-           <item row="4" column="0">
+           <item row="6" column="0">
             <widget class="QLabel" name="label_19">
              <property name="font">
               <font>
@@ -500,8 +510,54 @@
              </property>
             </widget>
            </item>
-           <item row="4" column="1">
-            <widget class="QLineEdit" name="lineEdit_targetphase_average"/>
+           <item row="6" column="1">
+            <widget class="QLineEdit" name="lineEdit_targetphase_average">
+             <property name="readOnly">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_13">
+             <property name="font">
+              <font>
+               <pointsize>12</pointsize>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>当前相位(deg)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_21">
+             <property name="font">
+              <font>
+               <pointsize>12</pointsize>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>单腔相移(deg)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="QLineEdit" name="lineEdit_single_cell_phase_shift">
+             <property name="font">
+              <font>
+               <pointsize>12</pointsize>
+               <weight>75</weight>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="readOnly">
+              <bool>true</bool>
+             </property>
+            </widget>
            </item>
           </layout>
          </item>
@@ -566,7 +622,7 @@
            <item>
             <widget class="QPushButton" name="pushButton_savecavpos">
              <property name="text">
-              <string>保存当前位置为腔位置</string>
+              <string>保存实际位置为腔位置</string>
              </property>
             </widget>
            </item>
@@ -694,7 +750,14 @@
               <bool>true</bool>
              </property>
              <property name="text">
-              <string>保存当前腔数据</string>
+              <string>保存当前腔所有数据</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushButton_savecurrphase">
+             <property name="text">
+              <string>更新当前腔相位</string>
              </property>
             </widget>
            </item>

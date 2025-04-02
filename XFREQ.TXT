@@ -3,17 +3,15 @@ Cavity and gas temperatures =            equal
 Expansion coefficient for other =    18.000000 x 10^-6/C
 Ambient-condition gas =                    air
 Vacuum frequency =                 2998.740000 MHz
-Ambient cavity temperature =         30.000000 C
+Ambient cavity temperature =         25.000000 C
 Operating temperature =              30.000000 C
-Gas temperature =                    30.000000 C
-Barometric pressure =                 0.000000 PA
+Gas temperature =                    25.000000 C
+Barometric pressure =              1000.000000 PA
 Relative humidity =                  22.000000 %
-Saturated vapor pressure =           31.824000 mm Hg
-Partial pressure of gas               0.000000 mm Hg
-Partial pressure of water =           7.001280 mm Hg
-Dielectric constant =                1.0000807
-Ambient frequency =                2998.619067 MHz
-F(ambient) - F(vacuum) =             -0.120933 MHz
-Expansion coefficient =               0.000000 x 10^-6/C
-Barometric pressure entry was inconsistent with relative humidity.
-Zero gas pressure assumed.
+Saturated vapor pressure =           23.756000 mm Hg
+Partial pressure of gas               2.274297 mm Hg
+Partial pressure of water =           5.226320 mm Hg
+Dielectric constant =                1.0000638
+Ambient frequency =                2998.897645 MHz
+F(ambient) - F(vacuum) =              0.157645 MHz
+Expansion coefficient =              16.891713 x 10^-6/C
