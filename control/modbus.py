@@ -4,7 +4,7 @@ import time
 import os
 from numpy import require
 import pymodbus.client as ModbusClient
-
+from pymodbus.exceptions import ConnectionException
 from pymodbus import (
     FramerType,
     ModbusException,
@@ -127,7 +127,8 @@ async def start_async_simple_client(host, port, framer=FramerType.SOCKET, refres
     print("connect to server")
     await client.connect()
     # test client is connected
-    assert client.connected
+    if not client.connected:
+        raise ConnectionException
     
     print("connected")
     return client

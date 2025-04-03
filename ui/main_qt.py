@@ -7,7 +7,9 @@ from PyQt5 import QtCore
 from qasync import QEventLoop, asyncClose, asyncSlot
 from .main_dlg import Ui_Dialog
 import control.modbus as modbus
+from pymodbus.exceptions import ConnectionException
 import control.vnc as vnc
+from pyvisa.errors import VisaIOError
 import control.convertf as convertf
 import control.dataprocess as dataprocess
 import csv
@@ -36,6 +38,7 @@ class MainDialog(QDialog):
         self.ui.setupUi(self)
 
         self._set_signal_slots()
+
         self.client: modbus.ModbusClient = None
         self.rm:vnc.ResourceManager = None
         self.inst:vnc.Resource = None
@@ -81,7 +84,13 @@ class MainDialog(QDialog):
         self.ui.pushButton_setpos.setEnabled(True)
         self.ui.pushButton_resetpos.setEnabled(True)
         self.ui.pushButton_addmov.setEnabled(True)
-
+    def is_vnc_connected(self):
+        if self.inst is None:
+            return False
+        else:
+            return True
+    def disable_vnc_buttons(self):
+        pass
     def get_cav_id(self):
         return int(self.ui.spinBox_cavid.text())
     def ui_check_input_phase_data_available(self):
@@ -432,11 +441,19 @@ class MainDialog(QDialog):
         event_loop.create_task(self.query_app_first())
 
     async def start_vnc_client(self):
-        self.rm, self.inst = vnc.create_visa_client()
-        vnc.set_meas_mode(self.inst)
+        try:
+            self.rm, self.inst = vnc.create_visa_client()
+            vnc.set_meas_mode(self.inst)
+        except VisaIOError:
+            self.rm, self.inst = None,None
+
     async def start_modbus_client(self):
-        self.client = await modbus.start_async_simple_client("192.168.1.100",502)
-        await modbus.start_PC_control(self.client)
+        try:
+            self.client = await modbus.start_async_simple_client("192.168.1.100",502)
+            await modbus.start_PC_control(self.client)
+        except ConnectionException:
+            self.client = None
+
     async def start_convertf_app(self):
         self.app=convertf.ConvertfApp()
 
