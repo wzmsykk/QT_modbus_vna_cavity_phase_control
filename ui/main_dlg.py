@@ -122,6 +122,7 @@ class Ui_Dialog(object):
         self.verticalLayout_7 = QtWidgets.QVBoxLayout(self.groupBox_5)
         self.verticalLayout_7.setObjectName("verticalLayout_7")
         self.checkBox_lockinputphase = QtWidgets.QCheckBox(self.groupBox_5)
+        self.checkBox_lockinputphase.setStyleSheet("color: rgb(255, 0, 0);")
         self.checkBox_lockinputphase.setObjectName("checkBox_lockinputphase")
         self.verticalLayout_7.addWidget(self.checkBox_lockinputphase)
         self.formLayout_3 = QtWidgets.QFormLayout()

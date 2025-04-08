@@ -218,6 +218,9 @@
         <layout class="QVBoxLayout" name="verticalLayout_7">
          <item>
           <widget class="QCheckBox" name="checkBox_lockinputphase">
+           <property name="styleSheet">
+            <string notr="true">color: rgb(255, 0, 0);</string>
+           </property>
            <property name="text">
             <string>相位设置完成</string>
            </property>

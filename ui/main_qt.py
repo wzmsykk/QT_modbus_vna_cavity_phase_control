@@ -56,7 +56,7 @@ class MainDialog(QDialog):
         self.columnname=["时间","腔ID","腔位置","输入相位","腔相位","单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)"]
         assert self.model._list_eq(self.model.columnname,self.columnname)
 
-        self.ui_data_dirty=False
+        self.set_ui_data_dirty()
 
         
         self.query_delay=1 ## in seconds
@@ -87,7 +87,22 @@ class MainDialog(QDialog):
         self.ui.pushButton_reconnectVNC.clicked.connect(self.start_vnc_client_button)
     def _set_data_edited_signals(self):
         self.ui.lineEdit_cav_phase.textChanged.connect(self.ui_data_edited)
+        self.ui.lineEdit_cav_phase.textChanged.connect(self.ui_phase_edited)
         self.ui.lineEdit_currcavpos.textChanged.connect(self.ui_data_edited)
+        self.ui.lineEdit_currcavpos.textChanged.connect(self.ui_pos_edited)
+    def set_ui_data_clean(self):
+        self.ui.lineEdit_cav_phase.setStyleSheet("")
+        self.ui.lineEdit_currcavpos.setStyleSheet("")
+        self.ui_data_dirty=False
+    def set_ui_data_dirty(self):
+        dirty_style="color: rgb(255, 0, 0);"
+        self.ui.lineEdit_cav_phase.setStyleSheet(dirty_style)
+        self.ui.lineEdit_currcavpos.setStyleSheet(dirty_style)
+        self.ui_data_dirty=True
+    def ui_phase_edited(self):
+        self.ui.lineEdit_cav_phase.setStyleSheet("color: rgb(255, 0, 0);")
+    def ui_pos_edited(self):
+        self.ui.lineEdit_currcavpos.setStyleSheet("color: rgb(255, 0, 0);")
     def ui_data_edited(self):
         self.ui_data_dirty=True
         if self.auto_recalculates():
@@ -135,15 +150,16 @@ class MainDialog(QDialog):
             return False
     def next_cavity(self):
         id=int(self.ui.spinBox_cavid.value())
-        if not self.model.cavity_id_exists_in_data(id):
+        if not self.model.cavity_id_exists_in_data(id) or self.ui_data_dirty:
             QMessageBox.critical(None, "错误",
                                  f"请先保存当前腔数据")
             return
+        
         self.ui.spinBox_cavid.setValue(id+1)
         return
     def previous_cavity(self):
         id=int(self.ui.spinBox_cavid.value())
-        if not self.model.cavity_id_exists_in_data(id):
+        if not self.model.cavity_id_exists_in_data(id) or self.ui_data_dirty:
             QMessageBox.critical(None, "错误",
                                  f"请先保存当前腔数据")
             return
@@ -168,6 +184,7 @@ class MainDialog(QDialog):
             return
         else:
             self.save_newline()
+            self.set_ui_data_dirty()
         try:
            self.update_phase_calc()
         except ValueError as err:
@@ -179,7 +196,8 @@ class MainDialog(QDialog):
     def save_cavity_data(self):
         if self.current_is_input_coupler():
             return
-
+        if self.auto_recalculates():
+            self.update_phase_calc()
         self.saveline(new=True)
 
     def update_phase_calc(self):
@@ -292,10 +310,18 @@ class MainDialog(QDialog):
         self.ui.lineEdit_inputphase.setText(str(p))
         return p
     def lock_inputphase(self):
-        self.model.input_coupler_phase=float(self.ui.lineEdit_inputphase.text())
-        cond=self.ui.checkBox_lockinputphase.isChecked()
-        self.ui.pushButton_setinputphase.setEnabled(not cond)
-        self.ui.lineEdit_inputphase.setReadOnly(cond)
+        locked=self.ui.checkBox_lockinputphase.isChecked()
+        self.ui.pushButton_setinputphase.setEnabled(not locked)
+        self.ui.lineEdit_inputphase.setReadOnly(locked)
+        if locked:
+            self.model.input_coupler_phase=float(self.ui.lineEdit_inputphase.text())
+            self.ui.checkBox_lockinputphase.setStyleSheet("color: rgb(0, 255, 0);")
+            if self.auto_recalculates():
+                self.update_phase_calc()
+        else:
+            self.ui.checkBox_lockinputphase.setStyleSheet("color: rgb(255, 0, 0);")
+        
+        
     def save_current_position_as_cavity_position(self):
         if self.current_is_input_coupler:
             return
@@ -329,7 +355,7 @@ class MainDialog(QDialog):
         self.ui.lineEdit_single_cell_phase_shift.setText(str(dict["单腔相移"]))
         self.ui.lineEdit_targetphase_average.setText(str(dict["目标相位"]))
 
-        self.ui_data_dirty=False ####SET CLEAN
+        self.set_ui_data_clean()####SET CLEAN
         pass
     def save_newline(self):
         if not self.ui_check_input_phase_data_available():
@@ -356,6 +382,7 @@ class MainDialog(QDialog):
         data["真空频率(MHz)"]=self.ui.lineEdit_originfreq.text()
         data["工作温度(℃)"]=self.ui.lineEdit_operate_temp.text()
         self.model.update_cav_data_by_dict(cavid,data)
+        self.set_ui_data_clean()
         return
     def saveline(self,new=False):
         ###save with all data
@@ -388,6 +415,7 @@ class MainDialog(QDialog):
         self.model.update_cav_data_by_dict(cavid,data)
         QMessageBox.information(None, "保存完成", 
                             "id:{} 数据保存完成".format(cavid))
+        self.set_ui_data_clean()
         return
     def delete_last_line(self):
         rowCount=self.model.rowCount()
