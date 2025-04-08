@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>749</width>
+    <width>872</width>
     <height>738</height>
    </rect>
   </property>
@@ -167,6 +167,9 @@
            <property name="enabled">
             <bool>true</bool>
            </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
            <property name="text">
             <string>频率校准</string>
            </property>
@@ -263,6 +266,9 @@
          </item>
          <item>
           <widget class="QPushButton" name="pushButton_setinputphase">
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
            <property name="text">
             <string>保存VNC相位为初始相位</string>
            </property>
@@ -291,6 +297,9 @@
              <property name="enabled">
               <bool>true</bool>
              </property>
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
+             </property>
              <property name="text">
               <string>位置复位</string>
              </property>
@@ -300,6 +309,9 @@
             <widget class="QPushButton" name="pushButton_stopmov">
              <property name="enabled">
               <bool>false</bool>
+             </property>
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
              </property>
              <property name="text">
               <string>停止移动</string>
@@ -313,10 +325,10 @@
            <item row="0" column="0">
             <widget class="QCheckBox" name="checkBox_VNCstat">
              <property name="enabled">
-              <bool>true</bool>
+              <bool>false</bool>
              </property>
              <property name="text">
-              <string>VNC正常</string>
+              <string>VNC已连接</string>
              </property>
              <property name="checkable">
               <bool>true</bool>
@@ -327,21 +339,30 @@
             </widget>
            </item>
            <item row="0" column="1">
-            <widget class="QPushButton" name="pushButton_resetVNC">
+            <widget class="QPushButton" name="pushButton_reconnectVNC">
              <property name="enabled">
-              <bool>false</bool>
+              <bool>true</bool>
+             </property>
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
              </property>
              <property name="text">
-              <string>VNC复位</string>
+              <string>重连VNC</string>
              </property>
             </widget>
            </item>
            <item row="1" column="0">
             <widget class="QCheckBox" name="checkBox_motorstat">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
              <property name="text">
-              <string>电机正常</string>
+              <string>电机已连接</string>
              </property>
              <property name="checkable">
+              <bool>true</bool>
+             </property>
+             <property name="checked">
               <bool>true</bool>
              </property>
              <property name="tristate">
@@ -350,21 +371,37 @@
             </widget>
            </item>
            <item row="1" column="1">
-            <widget class="QPushButton" name="pushButton_resetmotor">
+            <widget class="QPushButton" name="pushButton_reconnectmotor">
              <property name="enabled">
-              <bool>false</bool>
+              <bool>true</bool>
+             </property>
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
              </property>
              <property name="text">
-              <string>电机复位</string>
+              <string>重连电机</string>
              </property>
             </widget>
            </item>
           </layout>
          </item>
          <item>
+          <widget class="QPushButton" name="pushButton_import">
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
+           <property name="text">
+            <string>导入文件</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QPushButton" name="pushButton_deldata">
            <property name="enabled">
             <bool>true</bool>
+           </property>
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
            </property>
            <property name="text">
             <string>删除最后行</string>
@@ -391,8 +428,8 @@
         <property name="title">
          <string>腔体数据</string>
         </property>
-        <layout class="QGridLayout" name="gridLayout">
-         <item row="0" column="0">
+        <layout class="QVBoxLayout" name="verticalLayout_3">
+         <item>
           <layout class="QFormLayout" name="formLayout_4">
            <item row="0" column="0">
             <widget class="QLabel" name="label_14">
@@ -418,10 +455,13 @@
               </font>
              </property>
              <property name="minimum">
-              <number>0</number>
+              <number>1</number>
+             </property>
+             <property name="maximum">
+              <number>999</number>
              </property>
              <property name="value">
-              <number>0</number>
+              <number>1</number>
              </property>
             </widget>
            </item>
@@ -476,6 +516,9 @@
                <bold>true</bold>
               </font>
              </property>
+             <property name="text">
+              <string>0</string>
+             </property>
             </widget>
            </item>
            <item row="3" column="0">
@@ -500,6 +543,9 @@
                <weight>75</weight>
                <bold>true</bold>
               </font>
+             </property>
+             <property name="text">
+              <string>0</string>
              </property>
              <property name="readOnly">
               <bool>false</bool>
@@ -599,12 +645,39 @@
            </item>
           </layout>
          </item>
-         <item row="1" column="0">
-          <widget class="QPushButton" name="pushButton_calc_target_phase">
-           <property name="text">
-            <string>计算目标相位</string>
-           </property>
-          </widget>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_5">
+           <item>
+            <widget class="QPushButton" name="pushButton_record_vnc_phase">
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
+             </property>
+             <property name="text">
+              <string>记录当前VNC相位</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="checkBox_auto_calc">
+             <property name="text">
+              <string>自动计算目标相位</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushButton_calc_target_phase">
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
+             </property>
+             <property name="text">
+              <string>计算目标相位</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </item>
         </layout>
        </widget>
@@ -666,6 +739,9 @@
            </item>
            <item>
             <widget class="QPushButton" name="pushButton_savecavpos">
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
+             </property>
              <property name="text">
               <string>保存实际位置为腔位置</string>
              </property>
@@ -690,6 +766,9 @@
            </item>
            <item>
             <widget class="QPushButton" name="pushButton_setpos">
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
+             </property>
              <property name="text">
               <string>手动定位</string>
              </property>
@@ -716,6 +795,9 @@
             <widget class="QPushButton" name="pushButton_addmov">
              <property name="enabled">
               <bool>true</bool>
+             </property>
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
              </property>
              <property name="text">
               <string>移动位移</string>
@@ -761,6 +843,9 @@
               <property name="enabled">
                <bool>false</bool>
               </property>
+              <property name="focusPolicy">
+               <enum>Qt::NoFocus</enum>
+              </property>
               <property name="text">
                <string>自动扫描相位</string>
               </property>
@@ -796,6 +881,23 @@
              </property>
              <property name="text">
               <string>保存当前腔所有数据</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushButton_previouscavity">
+             <property name="text">
+              <string>上一个</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushButton_nextcavity">
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
+             </property>
+             <property name="text">
+              <string>下一个</string>
              </property>
             </widget>
            </item>

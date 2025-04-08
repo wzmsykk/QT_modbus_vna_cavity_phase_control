@@ -2,7 +2,8 @@ import sys
 import datetime
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
-import json
+import pandas as pd
+import csv
 from math import floor
 class CavityPhaseModel(QStandardItemModel):
     def __init__(self, parent=None):
@@ -17,8 +18,8 @@ class CavityPhaseModel(QStandardItemModel):
         self._cavity_phase_name_string:str="腔相位"
         self._cavity_position_name_string:str="腔位置"
 
-        self._columnname_ref=["时间","腔ID","输入相位","腔相位","单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)","腔位置"]
-        self.columnname=["时间",self._cavity_id_name_string,"输入相位",self._cavity_phase_name_string,"单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)",self._cavity_position_name_string]
+        self._columnname_ref=["时间","腔ID","腔位置","输入相位","腔相位","单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)"]
+        self.columnname=["时间",self._cavity_id_name_string,self._cavity_position_name_string,"输入相位",self._cavity_phase_name_string,"单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)"]
         assert self._list_eq(self._columnname_ref,self.columnname)
     def _list_eq(self,list1,list2):
         if len(list1)!=len(list2):
@@ -62,23 +63,11 @@ class CavityPhaseModel(QStandardItemModel):
         return
     def create_empty_row(self):
         time=datetime.datetime.now()
-        # columnname=["时间","腔ID","湿度","气压","腔温","气温","校准频率","VNA读取相位","输入相位","腔间相移","预期相移","累计相移"]
         newline=[]
 
         newline.append(str(time))##时间
         for i in range(len(self.columnname)-1):
             newline.append(0)
-        # newline.append(0)##腔ID
-        # newline.append(0)##湿度
-        # newline.append(0)##气压
-        # newline.append(0)##腔温
-        # newline.append(0)##气温
-        # newline.append(0)##校准频率
-        # newline.append(0)###VNA读取相位
-        # newline.append(0)##输入相位
-        # newline.append(0)##腔间相移
-        # newline.append(0)##预期相移
-        # newline.append(0)##累计相移
         newline=[QStandardItem(str(item)) for item in newline]
         return newline
     def create_empty_dict(self):
@@ -132,10 +121,21 @@ class CavityPhaseModel(QStandardItemModel):
         else:
             return True
     def get_row_by_cavity_id(self,cavity_id):
+        if not self.cavity_id_exists_in_data(cavity_id):
+            return None
         rowidx=self._search_index_from_cavity_id(cavity_id)
+        row=[]
         for i in range(len(self.columnname)):
-            pass
-        return 
+            row.append(self.item(rowidx,i))
+        return row
+    def get_dict_by_cavity_id(self,cavity_id):
+        if not self.cavity_id_exists_in_data(cavity_id):
+            return None
+        dict=self.create_empty_dict()
+        row=self.get_row_by_cavity_id(cavity_id)
+        for i in range(len(row)):
+            dict[self.columnname[i]]=row[i].text()
+        return dict
     def get_cavity_id_from_row(self,row:list[QStandardItem]):
         cindex=self._cavity_id_column_index()
         return int(row[cindex].text())
@@ -180,8 +180,33 @@ class CavityPhaseModel(QStandardItemModel):
         return target
     def target_phase_final(self,cavity_id):
         return (self.target_phase_single_cell(cavity_id)+self.target_phase_sum(cavity_id))/2
-    
+    def save_csv(self,file_path:str):
+        with open(file_path, 'w', newline='', encoding='utf-8-sig') as csvfile:
+                writer = csv.writer(csvfile)
+                
+                # 写入表头
+                header = []
+                for col in range(self.columnCount()):
+                    header.append(self.headerData(col, QtCore.Qt.Horizontal))
+                writer.writerow(header)
+                
+                # 写入数据行
+                for row in range(self.rowCount()):
+                    row_data = []
+                    for col in range(self.columnCount()):
+                        item = self.item(row, col)
+                        row_data.append(item.text() if item else "")
+                    writer.writerow(row_data)
 
+    def read_csv(self,file_path:str):
+        df=pd.read_csv(file_path,header=0)
+        columns=df.columns.tolist()
+        if not self._list_eq(columns,self.columnname):
+            raise ValueError("CSV文件列名不匹配")
+        for i in range(len(df)):
+            row=df.iloc[i]
+            qrow=[QStandardItem(str(item)) for item in row]
+            self.addRow(qrow)
 # if __name__ == '__main__':
 #     application = QtGui.QApplication(sys.argv)
 #     view = QtGui.QTableView()

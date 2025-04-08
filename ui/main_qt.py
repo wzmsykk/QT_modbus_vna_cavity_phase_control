@@ -38,6 +38,7 @@ class MainDialog(QDialog):
         self.ui.setupUi(self)
 
         self._set_signal_slots()
+        self._set_data_edited_signals()
 
         self.client: modbus.ModbusClient = None
         self.rm:vnc.ResourceManager = None
@@ -52,10 +53,10 @@ class MainDialog(QDialog):
         self.model.setHorizontalHeaderLabels(self.model.columnname)
         self.ui.tableView_data.setModel(self.model)
 
-        self.columnname=["时间","腔ID","输入相位","腔相位","单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)","腔位置"]
+        self.columnname=["时间","腔ID","腔位置","输入相位","腔相位","单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)"]
         assert self.model._list_eq(self.model.columnname,self.columnname)
 
-
+        self.ui_data_dirty=False
 
         
         self.query_delay=1 ## in seconds
@@ -63,9 +64,10 @@ class MainDialog(QDialog):
     def _set_signal_slots(self):
         self.ui.pushButton_setpos.clicked.connect(self.setpos)
         self.ui.pushButton_resetpos.clicked.connect(self.resetpos)
-        self.ui.pushButton_savecurr.clicked.connect(self.saveline)
+        self.ui.pushButton_savecurr.clicked.connect(self.save_cavity_data)
         self.ui.pushButton_deldata.clicked.connect(self.delete_last_line)
-        self.ui.pushButton_export.clicked.connect(self.save_csv)
+        self.ui.pushButton_export.clicked.connect(self.save_csv_ui)
+        self.ui.pushButton_import.clicked.connect(self.read_csv_ui)
         self.ui.pushButton_addmov.clicked.connect(self.addmov)
         self.ui.pushButton_freqcor.clicked.connect(self.freqcor)
         self.ui.radioButton_air.clicked.connect(self.set_airtype)
@@ -73,9 +75,28 @@ class MainDialog(QDialog):
         self.ui.checkBox_cavtempasairtemp.clicked.connect(self.set_temp_constraint)
         self.ui.pushButton_setinputphase.clicked.connect(self.set_current_vnc_phase_as_inputphase)
         self.ui.checkBox_lockinputphase.clicked.connect(self.lock_inputphase)
-        self.ui.spinBox_cavid.valueChanged.connect(self.update_cavity_id)
+        self.ui.spinBox_cavid.valueChanged.connect(self.ui_update_cavity_id)
+
+        self.ui.pushButton_record_vnc_phase.clicked.connect(self.set_current_vnc_phase_as_cavity_phase)
         self.ui.pushButton_savecavpos.clicked.connect(self.save_current_position_as_cavity_position)
-        self.ui.pushButton_calc_target_phase.clicked.connect(self.calculate_target_phase)
+        self.ui.pushButton_calc_target_phase.clicked.connect(self.ui_calculate_target_phase)
+        self.ui.pushButton_nextcavity.clicked.connect(self.next_cavity)
+        self.ui.pushButton_previouscavity.clicked.connect(self.previous_cavity)
+        ###RECONNECT BUTTONS
+        self.ui.pushButton_reconnectmotor.clicked.connect(self.start_modbus_client_button)
+        self.ui.pushButton_reconnectVNC.clicked.connect(self.start_vnc_client_button)
+    def _set_data_edited_signals(self):
+        self.ui.lineEdit_cav_phase.textChanged.connect(self.ui_data_edited)
+        self.ui.lineEdit_currcavpos.textChanged.connect(self.ui_data_edited)
+    def ui_data_edited(self):
+        self.ui_data_dirty=True
+        if self.auto_recalculates():
+            self.update_phase_calc()
+    def auto_recalculates(self):
+        if self.ui.checkBox_auto_calc.isChecked():
+            return True
+        else:
+            return False
     def disable_motor_buttons(self):
         self.ui.pushButton_setpos.setEnabled(False)
         self.ui.pushButton_resetpos.setEnabled(False)
@@ -92,57 +113,83 @@ class MainDialog(QDialog):
     def disable_vnc_buttons(self):
         pass
     def get_cav_id(self):
-        return int(self.ui.spinBox_cavid.text())
-    def ui_check_input_phase_data_available(self):
+        return int(self.ui.spinBox_cavid.value())
+    def check_input_phase_data_available(self):
+
         if self.ui.spinBox_cavid.value()>0 and not self.ui.checkBox_lockinputphase.isChecked():
+            return False
+        else:
+            return True
+    def ui_check_input_phase_data_available(self):
+        if not self.check_input_phase_data_available():
             QMessageBox.critical(None, "错误", 
                             f"未设定输入耦合器相位，请在相位设置中勾选设置完成后重试")
-            self.ui.spinBox_cavid.setValue(0)
-            self.model.set_current_cavity_id(0)
-            return
+            return False
+        else:
+            return True
     def current_is_input_coupler(self):
         cavid=int(self.ui.spinBox_cavid.value())
         if cavid==0:
             return True
         else:
             return False
-    def update_cavity_id(self):
-        self.ui_check_input_phase_data_available()
-        cavid=int(self.ui.spinBox_cavid.value())
-        if cavid==0:
+    def next_cavity(self):
+        id=int(self.ui.spinBox_cavid.value())
+        if not self.model.cavity_id_exists_in_data(id):
+            QMessageBox.critical(None, "错误",
+                                 f"请先保存当前腔数据")
             return
+        self.ui.spinBox_cavid.setValue(id+1)
+        return
+    def previous_cavity(self):
+        id=int(self.ui.spinBox_cavid.value())
+        if not self.model.cavity_id_exists_in_data(id):
+            QMessageBox.critical(None, "错误",
+                                 f"请先保存当前腔数据")
+            return
+        target_id=id-1
+        if target_id<1:
+            target_id=1
+        self.ui.spinBox_cavid.setValue(target_id)
+        return
+    def ui_update_cavity_id(self):
+        if not self.ui_check_input_phase_data_available():
+            return
+        
+
+        cavid=int(self.ui.spinBox_cavid.value())
         self.model.set_current_cavity_id(cavid)
         if self.model.cavity_id_exists_in_data(cavid):
-            # data=self.model.
-            pass
-        self.saveline_reduced()
+            ###load cavity data
+            dict=self.model.get_dict_by_cavity_id(cavid)
+            self.update_ui_from_dict(dict)
+            if self.auto_recalculates():
+                self.update_phase_calc()
+            return
+        else:
+            self.save_newline()
         try:
-            tgt=self.model.target_phase_single_cell(cavid)
-            self.ui.lineEdit_targetphase_singlecell.setText(str(tgt))
-
-            self.ui.lineEdit_single_cell_phase_shift.setText("请先记录腔相位")
-            tgt=self.model.target_phase_sum(cavid)
-            self.ui.lineEdit_targetphase_sum.setText(str(tgt))
-            tgt=self.model.target_phase_final(cavid)
-            self.ui.lineEdit_targetphase_average.setText(str(tgt))
+           self.update_phase_calc()
         except ValueError as err:
             QMessageBox.critical(None, "错误", 
                             err.args[0])
             cavid=self.model.recover_cavity_id()
             self.ui.spinBox_cavid.setValue(cavid)
             return
-    def update_ui_from_data(self,data):
-        ##TO DO
-        pass
-    def update_phase_retarget(self):
-        self.ui_check_input_phase_data_available()
-        cavid=int(self.ui.spinBox_cavid.value())
-        if cavid==0:
+    def save_cavity_data(self):
+        if self.current_is_input_coupler():
             return
+
+        self.saveline(new=True)
+
+    def update_phase_calc(self):
+        if not self.check_input_phase_data_available():
+            return
+        cavid=int(self.ui.spinBox_cavid.value())
         self.model.set_current_cavity_id(cavid)
-        self.saveline_reduced()
-        cav_phase=float(self.ui.lineEdit_cav_phase.text())
+
         try:
+            cav_phase=float(self.ui.lineEdit_cav_phase.text())
             tgt=self.model.target_phase_single_cell(cavid)
             self.ui.lineEdit_targetphase_singlecell.setText(str(tgt))
             shift=self.model.calc_phase_shift(cavid,cav_phase)
@@ -151,28 +198,25 @@ class MainDialog(QDialog):
             self.ui.lineEdit_targetphase_sum.setText(str(tgt))
             tgt=self.model.target_phase_final(cavid)
             self.ui.lineEdit_targetphase_average.setText(str(tgt))
-        except ValueError as err:
-            QMessageBox.critical(None, "错误", 
-                            err.args[0])
-            cavid=self.model.recover_cavity_id()
-            self.ui.spinBox_cavid.setValue(cavid)
+        
+        except ValueError:
+            print("lineEdit_cav_phase not a number")
             return
         
 
         return
-    def calculate_target_phase(self):
-        if not self.current_is_input_coupler():
-            self.update_phase_retarget()
-            QMessageBox.information(None, "计算", 
-                                "目标相位计算完成")
-    def get_input_coupler_phase(self):
-        return 18.37
-    def get_phase_diff_between_cav(self):
-        return 120
-    def get_expected_phase_offset(self):
-        return 999
-    def total_phase_offset(self):
-        return -999
+    def ui_calculate_target_phase(self):
+        if not self.ui_check_input_phase_data_available():
+            return
+        try:
+            self.update_phase_calc()
+        except ValueError as err:
+            QMessageBox.critical(None, "错误", 
+                            err.args[0])
+            return
+        QMessageBox.information(None, "计算", 
+                            "目标相位计算完成")
+        return
     @asyncSlot()
     async def setpos(self):
         try:
@@ -238,9 +282,12 @@ class MainDialog(QDialog):
         self.ui.lineEdit_cavtemp.setEnabled(not cond)
         return cond
     def set_current_vnc_phase_as_inputphase(self):
+        self.ui.lineEdit_cav_phase.setText(self.ui.lineEdit_vnc_phase.text())
+        self._saveline_reduced()
+    def set_current_vnc_phase_as_cavity_phase(self):
         self.model.input_coupler_phase=float(self.ui.lineEdit_vnc_phase.text())
-        self.get_inputphase()
-    def get_inputphase(self):
+        self.get_inputphase_ui()
+    def get_inputphase_ui(self):
         p=self.model.input_coupler_phase
         self.ui.lineEdit_inputphase.setText(str(p))
         return p
@@ -250,8 +297,10 @@ class MainDialog(QDialog):
         self.ui.pushButton_setinputphase.setEnabled(not cond)
         self.ui.lineEdit_inputphase.setReadOnly(cond)
     def save_current_position_as_cavity_position(self):
+        if self.current_is_input_coupler:
+            return
         self.ui.lineEdit_currcavpos.setText(self.ui.lineEdit_realpos.text())
-        self.saveline_reduced()
+        self._saveline_reduced()
         pass
     def freqcor(self):
         self.app.set_rel_humid(float(self.ui.lineEdit_humidity.text()))
@@ -271,17 +320,32 @@ class MainDialog(QDialog):
         self.ui.lineEdit_freqoffset.setText(str(self.app.get_results()[1]))
         QMessageBox.information(None, "校准", 
                             "频率数据校准完成")
+    def update_ui_from_dict(self,dict):
+        ##TO DO
+        self.ui.lineEdit_cav_phase.setText(str(dict["腔相位"]))
+        self.ui.lineEdit_targetphase_sum.setText(str(dict["目标相位-累计相移"]))
+        self.ui.lineEdit_targetphase_singlecell.setText(str(dict["目标相位-单腔相移"]))
+        self.ui.lineEdit_currcavpos.setText(str(dict["腔位置"]))
+        self.ui.lineEdit_single_cell_phase_shift.setText(str(dict["单腔相移"]))
+        self.ui.lineEdit_targetphase_average.setText(str(dict["目标相位"]))
 
-    def saveline_reduced(self):
+        self.ui_data_dirty=False ####SET CLEAN
+        pass
+    def save_newline(self):
+        if not self.ui_check_input_phase_data_available():
+            return
+        self._saveline_reduced(new=True)
+    def _saveline_reduced(self,new=False):
         ###save data with no calcs
-        self.ui_check_input_phase_data_available()
-        time=datetime.datetime.now()
-        columnname=["时间","腔ID","输入相位","腔相位","单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)","腔位置"]
-        assert self.model._list_eq(columnname,self.columnname)
+        if not self.ui_check_input_phase_data_available():
+            return
         cavid=self.ui.spinBox_cavid.value()
         data=self.model.create_empty_dict()
-        data["时间"]=str(time)
+        if new:
+            time=datetime.datetime.now()
+            data["时间"]=str(time)
         data["腔ID"]=cavid
+        data["腔位置"]=self.ui.lineEdit_currcavpos.text()
         data["输入相位"]=self.ui.lineEdit_inputphase.text()
         data["腔相位"]=self.ui.lineEdit_cav_phase.text()
         data["校准频率(MHz)"]=self.ui.lineEdit_freq_corred.text()
@@ -293,16 +357,18 @@ class MainDialog(QDialog):
         data["工作温度(℃)"]=self.ui.lineEdit_operate_temp.text()
         self.model.update_cav_data_by_dict(cavid,data)
         return
-    def saveline(self):
-        ###save data with all calcs
-        self.ui_check_input_phase_data_available()
-        time=datetime.datetime.now()
-        columnname=["时间","腔ID","输入相位","腔相位","单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)","腔位置"]
-        assert self.model._list_eq(columnname,self.columnname)
+    def saveline(self,new=False):
+        ###save with all data
+        if not self.ui_check_input_phase_data_available():
+            return
+        
         cavid=self.ui.spinBox_cavid.value()
         data=self.model.create_empty_dict()
-        data["时间"]=str(time)
+        if new:
+            time=datetime.datetime.now()
+            data["时间"]=str(time)
         data["腔ID"]=cavid
+        data["腔位置"]=self.ui.lineEdit_currcavpos.text()
         data["输入相位"]=self.ui.lineEdit_inputphase.text()
         data["腔相位"]=self.ui.lineEdit_cav_phase.text()
         data["单腔相移"]=self.ui.lineEdit_single_cell_phase_shift.text()
@@ -318,7 +384,7 @@ class MainDialog(QDialog):
         data["气温(℃)"]=self.ui.lineEdit_airtemp.text()
         data["真空频率(MHz)"]=self.ui.lineEdit_originfreq.text()
         data["工作温度(℃)"]=self.ui.lineEdit_operate_temp.text()
-        data["腔位置"]=self.ui.lineEdit_currcavpos.text()
+        
         self.model.update_cav_data_by_dict(cavid,data)
         QMessageBox.information(None, "保存完成", 
                             "id:{} 数据保存完成".format(cavid))
@@ -332,7 +398,30 @@ class MainDialog(QDialog):
         curr_id=int(self.ui.spinBox_cavid.value())
         if removed_id==curr_id:
             self.ui.spinBox_cavid.setValue(int(self.ui.spinBox_cavid.value())-1)
-    def save_csv(self):
+    def read_csv_ui(self):
+            
+        # 获取模型
+        model = self.model
+        if model is None:
+            return
+        
+        # 获取文件路径
+        file_path, _ = QFileDialog.getOpenFileName(
+            None, "加载CSV文件", "", "CSV文件 (*.csv)")
+        
+        if not file_path:
+            return  # 用户取消了保存
+        
+        try:
+            # 打开文件并读取数据
+            self.model.read_csv(file_path)
+        except PermissionError:
+            QMessageBox.critical(None, "错误", "没有读取权限，请确定权限")
+        except Exception as e:
+            QMessageBox.critical(None, "错误", f"保存文件时出错: {str(e)}")
+        return
+
+    def save_csv_ui(self):
         
         # 获取模型
         model = self.model
@@ -356,22 +445,7 @@ class MainDialog(QDialog):
             return
         try:
             # 打开文件并写入数据
-            with open(file_path, 'w', newline='', encoding='utf-8-sig') as csvfile:
-                writer = csv.writer(csvfile)
-                
-                # 写入表头
-                header = []
-                for col in range(model.columnCount()):
-                    header.append(model.headerData(col, QtCore.Qt.Horizontal))
-                writer.writerow(header)
-                
-                # 写入数据行
-                for row in range(model.rowCount()):
-                    row_data = []
-                    for col in range(model.columnCount()):
-                        item = model.item(row, col)
-                        row_data.append(item.text() if item else "")
-                    writer.writerow(row_data)
+            self.model.save_csv(file_path)
         except PermissionError:
             QMessageBox.critical(None, "错误", "没有写入权限，请选择其他位置保存")
         except Exception as e:
@@ -381,9 +455,11 @@ class MainDialog(QDialog):
     @asyncClose
     async def closeEvent(self, event):  # noqa:N802
         print("closeEvent")
-        await modbus.stop_PC_control(self.client)
-        await modbus.stop_async_simple_client(self.client)
-        vnc.close_visa_client(self.rm,self.inst)
+        if self.client:
+            await modbus.stop_PC_control(self.client)
+            await modbus.stop_async_simple_client(self.client)
+        if self.rm and self.inst:
+            vnc.close_visa_client(self.rm,self.inst)
         self.app.stop_app()
         self.client = None
         self.rm = None
@@ -391,30 +467,31 @@ class MainDialog(QDialog):
         self.app = None
         event.accept()
     async def query_modbus_first(self):
+        if self.client is None:
+            print("modbus client not connected")
+            return
         self.ui.lineEdit_relvec.setText(str(await modbus.read_float(self.client,"PC_M6_Realtive_Vel1")))
         self.ui.lineEdit_relpos.setText(str(await modbus.read_float(self.client,"PC_M6_Realtive_Pos1")))
     async def query_modbus_period(self):
         while True:
-            if self.client is None:
-                break
-            self.ui.lineEdit_realpos.setText(str(await modbus.read_float(self.client,"PC_M6_Act_Pos1")))
-            self.ui.lineEdit_realvec.setText(str(await modbus.read_float(self.client,"PC_M6_Act_Vel1")))
+            if self.client:
+                self.ui.lineEdit_realpos.setText(str(await modbus.read_float(self.client,"PC_M6_Act_Pos1")))
+                self.ui.lineEdit_realvec.setText(str(await modbus.read_float(self.client,"PC_M6_Act_Vel1")))
             
-            # print("query_loc:",self.ui.lineEdit_realpos.text())
-            # print("now sleep")
+                # print("query_loc:",self.ui.lineEdit_realpos.text())
+                # print("now sleep")
             await asyncio.sleep(self.query_delay)
     async def query_vnc_period(self):
         while True:
-            if self.inst is None:
-                break
-            # print("query_vnc_period")
-            fresult=vnc.get_phase(self.inst)
-            if not self.ui.checkBox_freeze_phase.isChecked():
-                self.ui.lineEdit_vnc_phase.setText(str(fresult))
-                self.ui.lineEdit_vnc_phase.setStyleSheet("")
-                # print("query_vnc:",self.ui.lineEdit_vnc_phase.text())
-            else:
-                self.ui.lineEdit_vnc_phase.setStyleSheet("color: rgb(255, 0, 0);")
+            if self.inst:
+                # print("query_vnc_period")
+                fresult=vnc.get_phase(self.inst)
+                if not self.ui.checkBox_freeze_phase.isChecked():
+                    self.ui.lineEdit_vnc_phase.setText(str(fresult))
+                    self.ui.lineEdit_vnc_phase.setStyleSheet("")
+                    # print("query_vnc:",self.ui.lineEdit_vnc_phase.text())
+                else:
+                    self.ui.lineEdit_vnc_phase.setStyleSheet("color: rgb(255, 0, 0);")
             await asyncio.sleep(self.query_delay)
     async def query_app_first(self):
         self.ui.lineEdit_humidity.setText(str(self.app.get_rel_humid()))
@@ -429,31 +506,68 @@ class MainDialog(QDialog):
         self.ui.lineEdit_freqoffset.setText(str(self.app.get_results()[1]))
     async def start(self):
         event_loop=asyncio.get_event_loop()
-        task1=event_loop.create_task(self.start_modbus_client())
-        task2=event_loop.create_task(self.start_vnc_client())
+        task1=event_loop.create_task(self.start_modbus_client_ui())
+        task2=event_loop.create_task(self.start_vnc_client_ui())
         task3=event_loop.create_task(self.start_convertf_app())
         await task1
         await task2
         await task3
         event_loop.create_task(self.query_modbus_first())
-        event_loop.create_task(self.query_modbus_period())
-        event_loop.create_task(self.query_vnc_period())
+        event_loop.create_task(self.query_modbus_period(),name="query_modbus_period")
+        event_loop.create_task(self.query_vnc_period(),name="query_vnc_period")
         event_loop.create_task(self.query_app_first())
 
-    async def start_vnc_client(self):
-        try:
-            self.rm, self.inst = vnc.create_visa_client()
-            vnc.set_meas_mode(self.inst)
-        except VisaIOError:
-            self.rm, self.inst = None,None
+    @asyncSlot()
+    async def start_vnc_client_button(self):
+        result=await self.start_vnc_client_ui(restart=True,retry_times=3)
+        return result
+    async def start_vnc_client_ui(self,restart=False,retry_times=3):
+        result=await self.start_vnc_client(restart,retry_times)
+        self.ui.checkBox_VNCstat.setChecked(result)
+    async def start_vnc_client(self,restart=False,retry_times=3):
+        if self.inst is not None:
+            if restart:
+                vnc.close_visa_client(self.rm,self.inst)
+            else:
+                return True
+        for i in range(retry_times):
+            try:
+                self.rm, self.inst = vnc.create_visa_client()
+                vnc.set_meas_mode(self.inst)
+            except VisaIOError:
+                self.rm, self.inst = None,None
+                await asyncio.sleep(1)
+                continue
 
-    async def start_modbus_client(self):
-        try:
-            self.client = await modbus.start_async_simple_client("192.168.1.100",502)
-            await modbus.start_PC_control(self.client)
-        except ConnectionException:
-            self.client = None
+            return True
+        return False
+    @asyncSlot()
+    async def start_modbus_client_button(self):
+        result=await self.start_modbus_client_ui(restart=True,retry_times=3)
+        return result
+    async def start_modbus_client_ui(self,restart=False,retry_times=3):
+        result=await self.start_modbus_client(restart,retry_times)
+        self.ui.checkBox_motorstat.setChecked(result)
+        return result
+    @asyncSlot()
+    async def start_modbus_client(self,restart=False,retry_times=3):
+        if self.client is not None:
+            if restart:
+                modbus.stop_async_simple_client(self.client)
+            else:
+                return True
+        for i in range(retry_times):
+            try:
+                self.client = await modbus.start_async_simple_client("192.168.1.100",502)
+                await modbus.start_PC_control(self.client)
+            except ConnectionException:
+                self.client = None
+                print("ModbusConnectionException")
+                await asyncio.sleep(1)
+                continue
 
+            return True
+        return False    
     async def start_convertf_app(self):
         self.app=convertf.ConvertfApp()
 

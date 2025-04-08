@@ -127,10 +127,10 @@ async def start_async_simple_client(host, port, framer=FramerType.SOCKET, refres
     print("connect to server")
     await client.connect()
     # test client is connected
-    if not client.connected:
+    if client.connected:
+        print("connected")
+    else:
         raise ConnectionException
-    
-    print("connected")
     return client
 async def start_PC_control(client):
     await write_bool(client,"PC_Control",True)
