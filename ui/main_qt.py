@@ -83,7 +83,7 @@ class MainDialog(QDialog):
     def _set_signal_slots(self):
         self.ui.pushButton_setpos.clicked.connect(self.setpos_ui)
         self.ui.pushButton_resetpos.clicked.connect(self.resetpos)
-        self.ui.pushButton_savecurr.clicked.connect(self.save_cavity_data)
+        self.ui.pushButton_savecurr.clicked.connect(self.save_cavity_data_ui)
         self.ui.pushButton_deldata.clicked.connect(self.delete_last_line)
         self.ui.pushButton_export.clicked.connect(self.save_csv_ui)
         self.ui.pushButton_import.clicked.connect(self.read_csv_ui)
@@ -185,6 +185,8 @@ class MainDialog(QDialog):
         for i in range(len(cavids)):
             cavid=cavids[i]
             cavpos=cavposs[i]
+            self.ui.spinBox_cavid.setValue(cavid)
+            
             await self._setpos(cavpos,vel)
             await asyncio.sleep(wait_time)
             try:
@@ -201,12 +203,17 @@ class MainDialog(QDialog):
                     return
                 else:
                     fresult=i*10
-            scanresults.append((cavid,fresult))
-        for result in scanresults:
-            cavid,fresult=result
+            time=datetime.datetime.now()
+            self.update_phase_calc()
+            self._saveline(new=True)
             self.model.update_cav_data_by_dict(cavid,{"腔相位":fresult})
+            self.model.update_cav_data_by_dict(cavid,{"时间":str(time)})
+            scanresults.append((cavid,fresult))
+            
+            
         self.automode_helper_signal.emit("SUCCESS")
-        pass
+        self.ui.checkBox_auto_calc.setChecked(True)
+        return scanresults
     @asyncSlot(str)
     async def automode_helper_slot(self,event:str="None"):
         if event=="VNC_DISCONNECTED":
@@ -327,12 +334,12 @@ class MainDialog(QDialog):
             cavid=self.model.recover_cavity_id()
             self.ui.spinBox_cavid.setValue(cavid)
             return
-    def save_cavity_data(self):
+    def save_cavity_data_ui(self):
         if self.current_is_input_coupler():
             return
         if self.auto_recalculates():
             self.update_phase_calc()
-        self.saveline(new=True)
+        self.saveline_ui(new=True)
 
     def update_phase_calc(self):
         if not self.check_input_phase_data_available():
@@ -443,7 +450,7 @@ class MainDialog(QDialog):
         
     def set_current_vnc_phase_as_cavity_phase(self):
         self.ui.lineEdit_cav_phase.setText(self.ui.lineEdit_vnc_phase.text())
-        self._saveline_reduced()
+        self._saveline_reduced(new=True)
 
     def get_inputphase_ui(self):
         p=self.model.input_coupler_phase
@@ -501,6 +508,7 @@ class MainDialog(QDialog):
         if not self.ui_check_input_phase_data_available():
             return
         self._saveline_reduced(new=True)
+
     def _saveline_reduced(self,new=False):
         ###save data with no calcs
         if not self.ui_check_input_phase_data_available():
@@ -524,11 +532,7 @@ class MainDialog(QDialog):
         self.model.update_cav_data_by_dict(cavid,data)
         self.set_ui_data_clean()
         return
-    def saveline(self,new=False):
-        ###save with all data
-        if not self.ui_check_input_phase_data_available():
-            return
-        
+    def _saveline(self,new=False):
         cavid=self.ui.spinBox_cavid.value()
         data=self.model.create_empty_dict()
         if new:
@@ -553,9 +557,17 @@ class MainDialog(QDialog):
         data["工作温度(℃)"]=self.ui.lineEdit_operate_temp.text()
         
         self.model.update_cav_data_by_dict(cavid,data)
+        self.set_ui_data_clean()
+        return
+    def saveline_ui(self,new=False):
+        ###save with all data
+        if not self.ui_check_input_phase_data_available():
+            return
+        cavid=self.ui.spinBox_cavid.value()
+        self._saveline(new=new)
         QMessageBox.information(None, "保存完成", 
                             "id:{} 数据保存完成".format(cavid))
-        self.set_ui_data_clean()
+        
         return
     def delete_last_line(self):
         rowCount=self.model.rowCount()
@@ -586,7 +598,10 @@ class MainDialog(QDialog):
         except PermissionError:
             QMessageBox.critical(None, "错误", "没有读取权限，请确定权限")
         except Exception as e:
-            QMessageBox.critical(None, "错误", f"保存文件时出错: {str(e)}")
+            QMessageBox.critical(None, "错误", f"读取文件时出错: {str(e)}")
+
+        # 更新UI
+        self.ui.spinBox_cavid.setValue(1)
         return
 
     def save_csv_ui(self):
