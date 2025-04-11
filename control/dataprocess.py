@@ -21,6 +21,7 @@ class CavityPhaseModel(QStandardItemModel):
         self._columnname_ref=["时间","腔ID","腔位置","输入相位","腔相位","单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)"]
         self.columnname=["时间",self._cavity_id_name_string,self._cavity_position_name_string,"输入相位",self._cavity_phase_name_string,"单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)"]
         assert self._list_eq(self._columnname_ref,self.columnname)
+        self.setHorizontalHeaderLabels(self.columnname)
     def _list_eq(self,list1,list2):
         if len(list1)!=len(list2):
             return False
@@ -28,6 +29,13 @@ class CavityPhaseModel(QStandardItemModel):
             if list1[i]!=list2[i]:
                 return False
         return True
+    def _reset_data(self):
+        self.clear()
+        self.setHorizontalHeaderLabels(self.columnname)
+        self.setColumnCount(len(self.columnname))
+        self.setRowCount(0)
+
+
     def set_current_cavity_id(self,id:int):
         self.previous_cavity_id=self.current_cavity_id
         self.current_cavity_id=id
@@ -199,6 +207,7 @@ class CavityPhaseModel(QStandardItemModel):
                     writer.writerow(row_data)
 
     def read_csv(self,file_path:str):
+        self._reset_data()
         df=pd.read_csv(file_path,header=0)
         columns=df.columns.tolist()
         if not self._list_eq(columns,self.columnname):
@@ -206,7 +215,25 @@ class CavityPhaseModel(QStandardItemModel):
         for i in range(len(df)):
             row=df.iloc[i]
             qrow=[QStandardItem(str(item)) for item in row]
-            self.addRow(qrow)
+            self.insertRow(i,qrow)
+    def get_cavity_id_list(self):
+        rowCount=self.rowCount()
+        if rowCount==0:
+            return None
+        idlist=[]
+        for i in range(rowCount):
+            cid=int(self.item(i,self._cavity_id_column_index()).text())
+            idlist.append(cid)
+        return idlist
+    def get_cavity_position_list(self):
+        rowCount=self.rowCount()
+        if rowCount==0:
+            return None
+        poslist=[]
+        for i in range(rowCount):
+            cid=int(self.item(i,self._cavity_position_column_index()).text())
+            poslist.append(cid)
+        return poslist
 # if __name__ == '__main__':
 #     application = QtGui.QApplication(sys.argv)
 #     view = QtGui.QTableView()

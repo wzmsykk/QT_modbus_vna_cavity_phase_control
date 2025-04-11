@@ -3,6 +3,7 @@ import asyncio
 import datetime
 from PyQt5.QtWidgets import QApplication, QDialog, QFileDialog, QMessageBox
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
+from PyQt5.QtCore import pyqtSignal, pyqtSlot
 from PyQt5 import QtCore
 from qasync import QEventLoop, asyncClose, asyncSlot
 from .main_dlg import Ui_Dialog
@@ -28,7 +29,7 @@ def is_file_locked(filepath):
         return True
 
 class MainDialog(QDialog):
-
+    automode_helper_signal=pyqtSignal(str)
     def __init__(self, parent=None):
 
         super(QDialog, self).__init__(parent)
@@ -36,9 +37,15 @@ class MainDialog(QDialog):
         self.ui = Ui_Dialog()
 
         self.ui.setupUi(self)
+        
+        ########INIT ASYNC MSGBOX
+        self.message_box = QMessageBox()
+        self.message_box.setText("This is a warning message")
+        self.message_box.setWindowTitle("Warning")
+        self.message_box.setIcon(QMessageBox.Icon.Warning)
+        self.message_box.setStandardButtons(QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
+        #self.message_box.finished.connect(self._message_box_results)
 
-        self._set_signal_slots()
-        self._set_data_edited_signals()
 
         self.client: modbus.ModbusClient = None
         self.rm:vnc.ResourceManager = None
@@ -60,9 +67,21 @@ class MainDialog(QDialog):
 
         
         self.query_delay=1 ## in seconds
+        
+
+        self._set_signal_slots()
+        self._set_data_edited_signals()
+
+    async def _show_aysnc_messagebox(self, title:str, message:str):
+        self.message_box.show()
+        self.message_box.setText(message)
+        self.message_box.setWindowTitle(title)
+        self.message_box.setIcon(QMessageBox.Icon.Warning)
+        self.message_box.setStandardButtons(QMessageBox.StandardButton.Ok)
+        # self.close()
 
     def _set_signal_slots(self):
-        self.ui.pushButton_setpos.clicked.connect(self.setpos)
+        self.ui.pushButton_setpos.clicked.connect(self.setpos_ui)
         self.ui.pushButton_resetpos.clicked.connect(self.resetpos)
         self.ui.pushButton_savecurr.clicked.connect(self.save_cavity_data)
         self.ui.pushButton_deldata.clicked.connect(self.delete_last_line)
@@ -82,9 +101,18 @@ class MainDialog(QDialog):
         self.ui.pushButton_calc_target_phase.clicked.connect(self.ui_calculate_target_phase)
         self.ui.pushButton_nextcavity.clicked.connect(self.next_cavity)
         self.ui.pushButton_previouscavity.clicked.connect(self.previous_cavity)
+
+
         ###RECONNECT BUTTONS
         self.ui.pushButton_reconnectmotor.clicked.connect(self.start_modbus_client_button)
         self.ui.pushButton_reconnectVNC.clicked.connect(self.start_vnc_client_button)
+
+        ###AUTO MODE
+        self.ui.checkBox_automode.clicked.connect(self.automode_clicked)
+        self.ui.pushButton_autophasescan.clicked.connect(self.auto_phase_scan)
+        ###AUTO MODE HELPER
+        self.automode_helper_signal.connect(self.automode_helper_slot)
+
     def _set_data_edited_signals(self):
         self.ui.lineEdit_cav_phase.textChanged.connect(self.ui_data_edited)
         self.ui.lineEdit_cav_phase.textChanged.connect(self.ui_phase_edited)
@@ -112,21 +140,127 @@ class MainDialog(QDialog):
             return True
         else:
             return False
+        
+
+    def automode_clicked(self):
+        if self.ui.checkBox_automode.isChecked():
+            self.disable_motor_buttons()
+            self.disable_vnc_buttons()
+            self.disable_data_ui()
+            self.ui.pushButton_autophasescan.setEnabled(True)
+            QMessageBox.warning(None, "警告", 
+                            f"自动模式会覆盖之前保存的相位数据，请先确认数据已经保存。")
+        else:
+            self.enable_motor_buttons()
+            self.enable_vnc_buttons()
+            self.enable_data_ui()
+            self.ui.pushButton_autophasescan.setEnabled(False)
+    @asyncSlot()
+    async def auto_phase_scan(self):
+        #####check status
+        unsafe_run=True
+        if not self.is_vnc_connected():
+            if not unsafe_run:
+                self.automode_helper_signal.emit("VNC_DISCONNECTED")
+                return
+        if not self.is_motor_connected():
+            if not unsafe_run:
+                self.automode_helper_signal.emit("MODBUS_DISCONNECTED")
+                return
+        #####GET SAVED CAVITY ID AND POSITION
+        cavids=self.model.get_cavity_id_list()
+        cavposs=self.model.get_cavity_position_list()
+        if len(cavids)==0:
+            self.automode_helper_signal.emit("NO_CAVITY_DATA")
+            return
+        if len(cavposs)==0:
+            self.automode_helper_signal.emit("NO_CAVITY_DATA")
+            return
+        #####DISABLE AUTO CALC
+        self.ui.checkBox_auto_calc.setChecked(False)
+        #####START SCAN
+        vel=float(self.ui.lineEdit_relvec.text()) ##get velocity
+        wait_time=0.5
+        scanresults=[]
+        for i in range(len(cavids)):
+            cavid=cavids[i]
+            cavpos=cavposs[i]
+            await self._setpos(cavpos,vel)
+            await asyncio.sleep(wait_time)
+            try:
+                fresult=vnc.get_phase(self.inst)
+            except VisaIOError:
+                if not unsafe_run:
+                    self.automode_helper_signal.emit("VNC_DISCONNECTED")
+                    return
+                else:
+                    fresult=i*10
+            except AttributeError:
+                if not unsafe_run:
+                    self.automode_helper_signal.emit("VNC_DISCONNECTED")
+                    return
+                else:
+                    fresult=i*10
+            scanresults.append((cavid,fresult))
+        for result in scanresults:
+            cavid,fresult=result
+            self.model.update_cav_data_by_dict(cavid,{"腔相位":fresult})
+        self.automode_helper_signal.emit("SUCCESS")
+        pass
+    @asyncSlot(str)
+    async def automode_helper_slot(self,event:str="None"):
+        if event=="VNC_DISCONNECTED":
+            await self._show_aysnc_messagebox("VNC未连接","VNC未连接，请检查连接")
+        elif event=="MODBUS_DISCONNECTED":
+            await self._show_aysnc_messagebox("电机未连接","电机未连接，请检查连接")
+        elif event=="SUCCESS":
+            await self._show_aysnc_messagebox("成功","自动模式完成")
+        elif event=="NO_CAVITY_DATA":
+            await self._show_aysnc_messagebox("错误","没有腔体数据，请先提供位置和ID数据")
+        else:
+            print(" automode_helper unknown event:",event)
+            return
+
+    def disable_data_ui(self):
+        self.ui.spinBox_cavid.setEnabled(False)
+        self.ui.lineEdit_cav_phase.setEnabled(False)
+        self.ui.lineEdit_currcavpos.setEnabled(False)
+        self.ui.lineEdit_inputphase.setEnabled(False)
+        self.ui.lineEdit_vnc_phase.setEnabled(False)
+        self.ui.lineEdit_relpos.setEnabled(False)
+        self.ui.lineEdit_relvec.setEnabled(False)
+    def enable_data_ui(self):
+        self.ui.spinBox_cavid.setEnabled(True)
+        self.ui.lineEdit_cav_phase.setEnabled(True)
+        self.ui.lineEdit_currcavpos.setEnabled(True)
+        self.ui.lineEdit_inputphase.setEnabled(True)
+        self.ui.lineEdit_vnc_phase.setEnabled(True)
+        self.ui.lineEdit_relpos.setEnabled(True)
+        self.ui.lineEdit_relvec.setEnabled(True)
     def disable_motor_buttons(self):
         self.ui.pushButton_setpos.setEnabled(False)
         self.ui.pushButton_resetpos.setEnabled(False)
         self.ui.pushButton_addmov.setEnabled(False)
+        self.ui.pushButton_savecavpos.setEnabled(False)
     def enable_motor_buttons(self):
         self.ui.pushButton_setpos.setEnabled(True)
         self.ui.pushButton_resetpos.setEnabled(True)
         self.ui.pushButton_addmov.setEnabled(True)
+        self.ui.pushButton_savecavpos.setEnabled(True)
+    def is_motor_connected(self):
+        if self.client is None:
+            return False
+        else:
+            return True
     def is_vnc_connected(self):
         if self.inst is None:
             return False
         else:
             return True
     def disable_vnc_buttons(self):
-        pass
+        self.ui.pushButton_record_vnc_phase.setEnabled(False)
+    def enable_vnc_buttons(self):
+        self.ui.pushButton_record_vnc_phase.setEnabled(True)
     def get_cav_id(self):
         return int(self.ui.spinBox_cavid.value())
     def check_input_phase_data_available(self):
@@ -235,15 +369,18 @@ class MainDialog(QDialog):
         QMessageBox.information(None, "计算", 
                             "目标相位计算完成")
         return
+    async def _setpos(self,pos,vel):
+        await modbus.send_rel_pos_vel(self.client,pos,vel)
+        await modbus.rel_cmd(self.client)
+        await modbus.wait_rel_cmd_done(self.client)
+        return
     @asyncSlot()
-    async def setpos(self):
+    async def setpos_ui(self):
         try:
             pos=float(self.ui.lineEdit_relpos.text())
             vel=float(self.ui.lineEdit_relvec.text())
-            await modbus.send_rel_pos_vel(self.client,pos,vel)
-            await modbus.rel_cmd(self.client)
             self.disable_motor_buttons()
-            await modbus.wait_rel_cmd_done(self.client)
+            self._setpos(pos,vel)
             self.enable_motor_buttons()
             return
         except:
@@ -273,7 +410,7 @@ class MainDialog(QDialog):
             pos=float(self.ui.lineEdit_relpos.text())
             newpos=pos+extpos
             self.ui.lineEdit_relpos.setText(str(newpos))
-            await self.setpos()
+            await self.setpos_ui()
             return
         except:
             return
@@ -299,12 +436,15 @@ class MainDialog(QDialog):
         self.ui.checkBox_cavtempasairtemp.setChecked(cond)
         self.ui.lineEdit_cavtemp.setEnabled(not cond)
         return cond
+    
     def set_current_vnc_phase_as_inputphase(self):
-        self.ui.lineEdit_cav_phase.setText(self.ui.lineEdit_vnc_phase.text())
-        self._saveline_reduced()
-    def set_current_vnc_phase_as_cavity_phase(self):
         self.model.input_coupler_phase=float(self.ui.lineEdit_vnc_phase.text())
         self.get_inputphase_ui()
+        
+    def set_current_vnc_phase_as_cavity_phase(self):
+        self.ui.lineEdit_cav_phase.setText(self.ui.lineEdit_vnc_phase.text())
+        self._saveline_reduced()
+
     def get_inputphase_ui(self):
         p=self.model.input_coupler_phase
         self.ui.lineEdit_inputphase.setText(str(p))
