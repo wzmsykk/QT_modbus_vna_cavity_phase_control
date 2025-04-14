@@ -1,11 +1,9 @@
-import sys,os
+import os
 import asyncio
 import datetime
-from PyQt5.QtWidgets import QApplication, QDialog, QFileDialog, QMessageBox
-from PyQt5.QtGui import QStandardItemModel, QStandardItem
-from PyQt5.QtCore import pyqtSignal, pyqtSlot
-from PyQt5 import QtCore
-from qasync import QEventLoop, asyncClose, asyncSlot
+from PyQt5.QtWidgets import QDialog, QFileDialog, QMessageBox
+from PyQt5.QtCore import pyqtSignal
+from qasync import asyncClose, asyncSlot
 from .main_dlg import Ui_Dialog
 import control.modbus as modbus
 from pymodbus.exceptions import ConnectionException
@@ -13,7 +11,6 @@ import control.vnc as vnc
 from pyvisa.errors import VisaIOError
 import control.convertf as convertf
 import control.dataprocess as dataprocess
-import csv
 
 def is_file_locked(filepath):
     """检查文件是否被其他程序占用"""
@@ -96,7 +93,9 @@ class MainDialog(QDialog):
         self.ui.checkBox_lockinputphase.clicked.connect(self.lock_inputphase)
         self.ui.spinBox_cavid.valueChanged.connect(self.ui_update_cavity_id)
 
+        ##### AUTO CALC
         self.ui.checkBox_auto_calc.clicked.connect(self.ui_set_auto_recalc)
+        #self.model.data_changed_signal.connect(self.sync_ui_from_model)
 
         self.ui.pushButton_record_vnc_phase.clicked.connect(self.set_current_vnc_phase_as_cavity_phase)
         self.ui.pushButton_savecavpos.clicked.connect(self.save_current_position_as_cavity_position)
@@ -116,9 +115,7 @@ class MainDialog(QDialog):
         self.automode_helper_signal.connect(self.automode_helper_slot)
 
     def _set_data_edited_signals(self):
-        self.ui.lineEdit_cav_phase.textChanged.connect(self.ui_data_edited)
         self.ui.lineEdit_cav_phase.textChanged.connect(self.ui_phase_edited)
-        self.ui.lineEdit_currcavpos.textChanged.connect(self.ui_data_edited)
         self.ui.lineEdit_currcavpos.textChanged.connect(self.ui_pos_edited)
     def set_ui_data_clean(self):
         self.ui.lineEdit_cav_phase.setStyleSheet("")
@@ -131,8 +128,10 @@ class MainDialog(QDialog):
         self.ui_data_dirty=True
     def ui_phase_edited(self):
         self.ui.lineEdit_cav_phase.setStyleSheet("color: rgb(255, 0, 0);")
+        self.ui_data_edited()
     def ui_pos_edited(self):
         self.ui.lineEdit_currcavpos.setStyleSheet("color: rgb(255, 0, 0);")
+        self.ui_data_edited()
     def ui_data_edited(self):
         self.ui_data_dirty=True
         if self.auto_recalculates():
@@ -143,6 +142,18 @@ class MainDialog(QDialog):
         
     def ui_set_auto_recalc(self):
         self.model.auto_recalculate=self.ui.checkBox_auto_calc.isChecked()
+
+    def sync_ui_from_model(self,changed_cavity_id:int,changed_column_list:list):
+        ui_current_cavity_id=self.ui.spinBox_cavid.value()
+        if ui_current_cavity_id!=changed_cavity_id:
+            ##NO NEED TO UPDATE UI
+            return
+            
+        data_dict=self.model.get_dict_by_cavity_id(changed_cavity_id)
+        marked_for_update_dict={}
+        for key in changed_column_list:
+            marked_for_update_dict[key]=data_dict[key]
+        self.update_ui_from_dict(marked_for_update_dict)
 
     def automode_clicked(self):
         if self.ui.checkBox_automode.isChecked():
@@ -360,9 +371,9 @@ class MainDialog(QDialog):
             print(err)
             return
         
-
-        cavids_marked_for_calc=[cavid]
-        self.model.recalculate_phase_all(cavids_marked_for_calc)
+        if not self.auto_recalculates():
+            cavids_marked_for_calc=[cavid]
+            self.model.recalculate_phase_all(cavids_marked_for_calc) ###RECAL AGAIN
 
 
         self.ui.lineEdit_targetphase_singlecell.setText(str(self.model.get_target_phase_single_cell(cavid)))
@@ -505,14 +516,20 @@ class MainDialog(QDialog):
         self.ui.lineEdit_freqoffset.setText(str(self.app.get_results()[1]))
         QMessageBox.information(None, "校准", 
                             "频率数据校准完成")
-    def update_ui_from_dict(self,dict):
+    def update_ui_from_dict(self,indict):
         ##TO DO
-        self.ui.lineEdit_cav_phase.setText(str(dict["腔相位"]))
-        self.ui.lineEdit_targetphase_sum.setText(str(dict["目标相位-累计相移"]))
-        self.ui.lineEdit_targetphase_singlecell.setText(str(dict["目标相位-单腔相移"]))
-        self.ui.lineEdit_currcavpos.setText(str(dict["腔位置"]))
-        self.ui.lineEdit_single_cell_phase_shift.setText(str(dict["单腔相移"]))
-        self.ui.lineEdit_targetphase_average.setText(str(dict["目标相位"]))
+        if "腔相位" in indict.keys():         
+            self.ui.lineEdit_cav_phase.setText(str(indict["腔相位"]))
+        if "目标相位-累计相移" in indict.keys():
+            self.ui.lineEdit_targetphase_sum.setText(str(indict["目标相位-累计相移"]))
+        if "目标相位-单腔相移" in indict.keys():
+            self.ui.lineEdit_targetphase_singlecell.setText(str(indict["目标相位-单腔相移"]))
+        if "单腔相移" in indict.keys():
+            self.ui.lineEdit_single_cell_phase_shift.setText(str(indict["单腔相移"]))
+        if "腔位置" in indict.keys():
+            self.ui.lineEdit_currcavpos.setText(str(indict["腔位置"]))
+        if "目标相位" in indict.keys():
+            self.ui.lineEdit_targetphase_average.setText(str(indict["目标相位"]))
 
         self.set_ui_data_clean()####SET CLEAN
         pass

@@ -1,13 +1,14 @@
-import sys
+
 import datetime
-from PyQt5 import QtCore, QtGui
+from PyQt5 import QtCore
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtCore import pyqtSignal
 import pandas as pd
 import csv
-from math import floor
+
 class CavityPhaseModel(QStandardItemModel):
     phase_data_changed_signal=pyqtSignal(int)###int:cavity_id
+    data_changed_signal=pyqtSignal(int,list)###int:cavity_id list:changed_column_names
     def __init__(self, parent=None):
         QStandardItemModel.__init__(self, parent)
         self.input_coupler_phase:float=0
@@ -24,10 +25,12 @@ class CavityPhaseModel(QStandardItemModel):
         self.columnname=["时间",self._cavity_id_name_string,self._cavity_position_name_string,"输入相位",self._cavity_phase_name_string,"单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)"]
         assert self._list_eq(self._columnname_ref,self.columnname)
         self.setHorizontalHeaderLabels(self.columnname)
-        self.data_dirty=False
+
+        self.data_dirty_list=[]
         self.auto_recalculate=True
 
         self.phase_data_changed_signal.connect(self._on_phase_data_changed)
+        self.itemChanged.connect(self._on_item_changed)
     def _list_eq(self,list1,list2):
         if len(list1)!=len(list2):
             return False
@@ -40,13 +43,30 @@ class CavityPhaseModel(QStandardItemModel):
         self.setHorizontalHeaderLabels(self.columnname)
         self.setColumnCount(len(self.columnname))
         self.setRowCount(0)
-        self.data_dirty=False
+        self.data_dirty_list.clear()
     def _on_phase_data_changed(self,cavity_id:int):
-        self.data_dirty=True
+        self.data_dirty_list.append(cavity_id)
         if self.auto_recalculate:
-            self.recalculate_phase_all([cavity_id])
+            self.recalculate_phase_all()
+    def _on_item_changed(self,item:QStandardItem):
+        if item is None:
+            return
+        if item.text() is None:
+            return
+        if self.rowCount()==0:
+            return
+        cavity_id=int(self.item(item.row(),self._cavity_id_column_index()).text())
+        if item.column()==self._cavity_phase_column_index():
+            self.phase_data_changed(cavity_id)
+            
+        elif item.column()==self._cavity_position_column_index():
+            self.data_changed(cavity_id,changed_column_names=[self._cavity_position_name_string])
+
+    def data_changed(self,cavity_id:int,changed_column_names:list=[]):
+        self.data_changed_signal.emit(cavity_id,changed_column_names)
     def phase_data_changed(self,cavity_id:int):
         self.phase_data_changed_signal.emit(cavity_id)
+        self.data_changed(cavity_id,changed_column_names=[self._cavity_phase_name_string])
     def set_current_cavity_id(self,id:int):
         self.previous_cavity_id=self.current_cavity_id
         self.current_cavity_id=id
@@ -281,7 +301,8 @@ class CavityPhaseModel(QStandardItemModel):
             raise ValueError("腔体ID:{}不存在".format(cavity_id))
         index=self._cavity_phase_column_index()
         row[index].setText(str(phase))
-        self.data_dirty=True
+
+        self.phase_data_changed(cavity_id)
 
     def set_phase_shift(self,cavity_id:int,phase_shift:float):
         row=self.get_row_by_cavity_id(cavity_id)
@@ -357,13 +378,16 @@ class CavityPhaseModel(QStandardItemModel):
         return float(row[index].text())
     def equation(self):
         pass
-    def recalculate_phase_all(self,dirty_cavids:list[int]|int):
-        if dirty_cavids is None:
+    def recalculate_phase_all(self,dirty_cavids:list[int]|int=None):
+        list_to_process=self.data_dirty_list.copy()
+        if len(list_to_process)==0:
             return
         if isinstance(dirty_cavids,int):
-            mincavid=dirty_cavids
+            list_to_process.append(dirty_cavids)
         elif isinstance(dirty_cavids,list):
-            mincavid=min(dirty_cavids)
+            list_to_process+=dirty_cavids
+
+        mincavid=min(list_to_process)
         maxcavid=self.get_cavity_id_list()[-1]
         for cavid in range(mincavid,maxcavid+1):
             phase=self.get_phase_by_cavity_id(cavid)
@@ -379,7 +403,7 @@ class CavityPhaseModel(QStandardItemModel):
             phase_error_sum=self.calc_phase_error_sum_simple(cavid,phase_error_single)
             self.set_phase_error_sum(cavid,phase_error_sum)
 
-        self.data_dirty=False
+        self.data_dirty_list.clear()
 # if __name__ == '__main__':
 #     application = QtGui.QApplication(sys.argv)
 #     view = QtGui.QTableView()
