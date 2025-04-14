@@ -2,14 +2,16 @@ import sys
 import datetime
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
+from PyQt5.QtCore import pyqtSignal
 import pandas as pd
 import csv
 from math import floor
 class CavityPhaseModel(QStandardItemModel):
+    phase_data_changed_signal=pyqtSignal(int)###int:cavity_id
     def __init__(self, parent=None):
         QStandardItemModel.__init__(self, parent)
         self.input_coupler_phase:float=0
-        self.designed_offset_per_cell:float=240
+        self.designed_shift_per_cell:float=240
         self._phase_round_const:float=360 ###360 for deg, 2Pi for rad
         assert self._phase_round_const>0
         self.current_cavity_id:int=0
@@ -17,11 +19,15 @@ class CavityPhaseModel(QStandardItemModel):
         self._cavity_id_name_string:str="腔ID"
         self._cavity_phase_name_string:str="腔相位"
         self._cavity_position_name_string:str="腔位置"
-
+        self._phase_error_sum_name_string:str="累计相移误差"
         self._columnname_ref=["时间","腔ID","腔位置","输入相位","腔相位","单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)"]
         self.columnname=["时间",self._cavity_id_name_string,self._cavity_position_name_string,"输入相位",self._cavity_phase_name_string,"单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)"]
         assert self._list_eq(self._columnname_ref,self.columnname)
         self.setHorizontalHeaderLabels(self.columnname)
+        self.data_dirty=False
+        self.auto_recalculate=True
+
+        self.phase_data_changed_signal.connect(self._on_phase_data_changed)
     def _list_eq(self,list1,list2):
         if len(list1)!=len(list2):
             return False
@@ -34,25 +40,37 @@ class CavityPhaseModel(QStandardItemModel):
         self.setHorizontalHeaderLabels(self.columnname)
         self.setColumnCount(len(self.columnname))
         self.setRowCount(0)
-
-
+        self.data_dirty=False
+    def _on_phase_data_changed(self,cavity_id:int):
+        self.data_dirty=True
+        if self.auto_recalculate:
+            self.recalculate_phase_all([cavity_id])
+    def phase_data_changed(self,cavity_id:int):
+        self.phase_data_changed_signal.emit(cavity_id)
     def set_current_cavity_id(self,id:int):
         self.previous_cavity_id=self.current_cavity_id
         self.current_cavity_id=id
     def recover_cavity_id(self):
         self.current_cavity_id=self.previous_cavity_id
         return self.current_cavity_id
+    def get_phase_by_cavity_id(self,cavity_id:int):
+        cav_index=self._search_index_from_cavity_id(cavity_id)
+        if cav_index is None:
+                raise ValueError("未找到腔体id:{} 的数据".format(cav_index))
+        return float(self.item(cav_index,self._cavity_phase_column_index()).text())
     def get_ref_phase(self,current_cavity_id):
+
         if current_cavity_id==1:
             return self.input_coupler_phase
         else:
             ref_cav_id=current_cavity_id-1
-            ref_cav_index=self._search_index_from_cavity_id(ref_cav_id)
-            if ref_cav_index is None:
-                raise ValueError("未找到腔体id:{} 的数据".format(ref_cav_id))
-            return float(self.item(ref_cav_index,self._cavity_phase_column_index()).text())
-
-
+            return float(self.get_phase_by_cavity_id(ref_cav_id))
+    def get_ref_phase_error_sum(self,current_cavity_id):
+        if current_cavity_id==1:
+            return 0
+        else:
+            ref_cav_id=current_cavity_id-1
+            return float(self.get_phase_error_sum(ref_cav_id))
     def update_cav_data_by_dict(self,cavity_id:int,data:dict):
         ###check if already exists
         
@@ -68,6 +86,8 @@ class CavityPhaseModel(QStandardItemModel):
             newitems=self._update_row_items(items,data)
             self.insertRow(row_index,newitems)
         print("cav_id:",cavity_id,"row_index",row_index)
+
+        self.phase_data_changed(cavity_id)
         return
     def create_empty_row(self):
         time=datetime.datetime.now()
@@ -98,6 +118,8 @@ class CavityPhaseModel(QStandardItemModel):
         return self._get_column_index(self._cavity_position_name_string)
     def _cavity_phase_column_index(self):
         return self._get_column_index(self._cavity_phase_name_string)
+    def _cavity_phase_error_sum_column_index(self):
+        return self._get_column_index(self._phase_error_sum_name_string)
     def _search_index_from_cavity_id(self,cavity_id):
         rowCount=self.rowCount()
         if rowCount==0:
@@ -162,13 +184,32 @@ class CavityPhaseModel(QStandardItemModel):
         elif shift>self._phase_round_const:
             shift-=self._phase_round_const
         return shift
+    def _calc_phase_error_single_cell(self,cavity_id,cav_phase):
         
-    def target_phase_single_cell(self,cavity_id):
+        shift=self.get_ref_phase(cavity_id)-cav_phase
+        if shift<0:
+            shift+=self._phase_round_const
+        elif shift>self._phase_round_const:
+            shift-=self._phase_round_const
+        error=shift-self.designed_shift_per_cell
+        error/=2
+        return error
+    def calc_phase_error_sum_simple(self,cavity_id:int,cav_phase_error:float):
+        previous_sum=self.get_ref_phase_error_sum(cavity_id)
+        return previous_sum+cav_phase_error
+    def calc_phase_error_sum_full(self,cavity_id):
+        sum=0
+        for i in range(0,cavity_id):
+            cav_phase=float(self.item(i,self._cavity_phase_column_index()).text())
+            shift=self._calc_phase_error_single_cell(i+1,cav_phase) ###cavid=i+1 since cavity_id starts from 1
+            sum+=shift
+        return sum
+    def calc_target_phase_single_cell(self,cavity_id):
         #return -180<value<180
         if cavity_id==1:
-            target=self.input_coupler_phase-self.designed_offset_per_cell
+            target=self.input_coupler_phase-self.designed_shift_per_cell
         elif cavity_id>1:
-            target=self.get_ref_phase(cavity_id)-self.designed_offset_per_cell
+            target=self.get_ref_phase(cavity_id)-self.designed_shift_per_cell
         else:
             return 0
         if target<-self._phase_round_const/2:
@@ -177,8 +218,8 @@ class CavityPhaseModel(QStandardItemModel):
             target-=self._phase_round_const
         return target
 
-    def target_phase_sum(self,cavity_id):
-        target=self.input_coupler_phase-int(cavity_id)*self.designed_offset_per_cell
+    def calc_target_phase_sum(self,cavity_id):
+        target=self.input_coupler_phase-int(cavity_id)*self.designed_shift_per_cell
         if target<-self._phase_round_const/2:
             while(target<-self._phase_round_const/2):
                 target+=self._phase_round_const
@@ -186,8 +227,8 @@ class CavityPhaseModel(QStandardItemModel):
             while(target>self._phase_round_const/2):
                 target-=self._phase_round_const
         return target
-    def target_phase_final(self,cavity_id):
-        return (self.target_phase_single_cell(cavity_id)+self.target_phase_sum(cavity_id))/2
+    def calc_target_phase_final(self,cavity_id):
+        return (self.calc_target_phase_single_cell(cavity_id)+self.calc_target_phase_sum(cavity_id))/2
     def save_csv(self,file_path:str):
         with open(file_path, 'w', newline='', encoding='utf-8-sig') as csvfile:
                 writer = csv.writer(csvfile)
@@ -234,6 +275,111 @@ class CavityPhaseModel(QStandardItemModel):
             cid=int(self.item(i,self._cavity_position_column_index()).text())
             poslist.append(cid)
         return poslist
+    def set_cavity_phase(self,cavity_id:int,phase:float):
+        row=self.get_row_by_cavity_id(cavity_id)
+        if row is None:
+            raise ValueError("腔体ID:{}不存在".format(cavity_id))
+        index=self._cavity_phase_column_index()
+        row[index].setText(str(phase))
+        self.data_dirty=True
+
+    def set_phase_shift(self,cavity_id:int,phase_shift:float):
+        row=self.get_row_by_cavity_id(cavity_id)
+        if row is None:
+            raise ValueError("腔体ID:{}不存在".format(cavity_id))
+        index=self.columnname.index("单腔相移")
+        row[index].setText(str(phase_shift))
+    def get_phase_shift(self,cavity_id:int):
+        row=self.get_row_by_cavity_id(cavity_id)
+        if row is None:
+            raise ValueError("腔体ID:{}不存在".format(cavity_id))
+        index=self.columnname.index("单腔相移")
+        return float(row[index].text())
+    def set_target_phase_final(self,cavity_id:int,target_phase:float):
+        row=self.get_row_by_cavity_id(cavity_id)
+        if row is None:
+            raise ValueError("腔体ID:{}不存在".format(cavity_id))
+        index=self.columnname.index("目标相位")
+        row[index].setText(str(target_phase))
+    def get_target_phase_final(self,cavity_id:int):
+        row=self.get_row_by_cavity_id(cavity_id)
+        if row is None:
+            raise ValueError("腔体ID:{}不存在".format(cavity_id))
+        index=self.columnname.index("目标相位")
+        return float(row[index].text())
+    def set_target_phase_single_cell(self,cavity_id:int,target_phase:float):
+        row=self.get_row_by_cavity_id(cavity_id)
+        if row is None:
+            raise ValueError("腔体ID:{}不存在".format(cavity_id))
+        index=self.columnname.index("目标相位-单腔相移")
+        row[index].setText(str(target_phase))
+    def get_target_phase_single_cell(self,cavity_id:int):
+        row=self.get_row_by_cavity_id(cavity_id)
+        if row is None:
+            raise ValueError("腔体ID:{}不存在".format(cavity_id))
+        index=self.columnname.index("目标相位-单腔相移")
+        return float(row[index].text())
+    def set_target_phase_sum(self,cavity_id:int,target_phase:float):
+        row=self.get_row_by_cavity_id(cavity_id)
+        if row is None:
+            raise ValueError("腔体ID:{}不存在".format(cavity_id))
+        index=self.columnname.index("目标相位-累计相移")
+        row[index].setText(str(target_phase))
+    def get_target_phase_sum(self,cavity_id:int):
+        row=self.get_row_by_cavity_id(cavity_id)
+        if row is None:
+            raise ValueError("腔体ID:{}不存在".format(cavity_id))
+        index=self.columnname.index("目标相位-累计相移")
+        return float(row[index].text())
+    def set_phase_error_single_cell(self,cavity_id:int,phase_error:float):
+        row=self.get_row_by_cavity_id(cavity_id)
+        if row is None:
+            raise ValueError("腔体ID:{}不存在".format(cavity_id))
+        index=self.columnname.index("单腔相移误差")
+        row[index].setText(str(phase_error))
+    def get_phase_error_single_cell(self,cavity_id:int):
+        row=self.get_row_by_cavity_id(cavity_id)
+        if row is None:
+            raise ValueError("腔体ID:{}不存在".format(cavity_id))
+        index=self.columnname.index("单腔相移误差")
+        return float(row[index].text())
+    def set_phase_error_sum(self,cavity_id:int,phase_error:float):
+        row=self.get_row_by_cavity_id(cavity_id)
+        if row is None:
+            raise ValueError("腔体ID:{}不存在".format(cavity_id))
+        index=self.columnname.index("累计相移误差")
+        row[index].setText(str(phase_error))
+    def get_phase_error_sum(self,cavity_id:int):
+        row=self.get_row_by_cavity_id(cavity_id)
+        if row is None:
+            raise ValueError("腔体ID:{}不存在".format(cavity_id))
+        index=self.columnname.index("累计相移误差")
+        return float(row[index].text())
+    def equation(self):
+        pass
+    def recalculate_phase_all(self,dirty_cavids:list[int]|int):
+        if dirty_cavids is None:
+            return
+        if isinstance(dirty_cavids,int):
+            mincavid=dirty_cavids
+        elif isinstance(dirty_cavids,list):
+            mincavid=min(dirty_cavids)
+        maxcavid=self.get_cavity_id_list()[-1]
+        for cavid in range(mincavid,maxcavid+1):
+            phase=self.get_phase_by_cavity_id(cavid)
+            ####CALC PHASE SHIFT
+            phase_shift=self.calc_phase_shift(cavid,phase)
+            self.set_phase_shift(cavid,phase_shift)
+            self.set_target_phase_single_cell(cavid,self.calc_target_phase_single_cell(cavid))
+            self.set_target_phase_sum(cavid,self.calc_target_phase_sum(cavid))
+            self.set_target_phase_final(cavid,self.calc_target_phase_final(cavid))
+            ####CALC PHASE ERROR
+            phase_error_single=self._calc_phase_error_single_cell(cavid,phase)
+            self.set_phase_error_single_cell(cavid,phase_error_single)
+            phase_error_sum=self.calc_phase_error_sum_simple(cavid,phase_error_single)
+            self.set_phase_error_sum(cavid,phase_error_sum)
+
+        self.data_dirty=False
 # if __name__ == '__main__':
 #     application = QtGui.QApplication(sys.argv)
 #     view = QtGui.QTableView()

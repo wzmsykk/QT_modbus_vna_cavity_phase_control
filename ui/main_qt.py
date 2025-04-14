@@ -96,6 +96,8 @@ class MainDialog(QDialog):
         self.ui.checkBox_lockinputphase.clicked.connect(self.lock_inputphase)
         self.ui.spinBox_cavid.valueChanged.connect(self.ui_update_cavity_id)
 
+        self.ui.checkBox_auto_calc.clicked.connect(self.ui_set_auto_recalc)
+
         self.ui.pushButton_record_vnc_phase.clicked.connect(self.set_current_vnc_phase_as_cavity_phase)
         self.ui.pushButton_savecavpos.clicked.connect(self.save_current_position_as_cavity_position)
         self.ui.pushButton_calc_target_phase.clicked.connect(self.ui_calculate_target_phase)
@@ -135,12 +137,12 @@ class MainDialog(QDialog):
         self.ui_data_dirty=True
         if self.auto_recalculates():
             self.update_phase_calc()
+
     def auto_recalculates(self):
-        if self.ui.checkBox_auto_calc.isChecked():
-            return True
-        else:
-            return False
+        return self.model.auto_recalculate
         
+    def ui_set_auto_recalc(self):
+        self.model.auto_recalculate=self.ui.checkBox_auto_calc.isChecked()
 
     def automode_clicked(self):
         if self.ui.checkBox_automode.isChecked():
@@ -205,7 +207,7 @@ class MainDialog(QDialog):
                     fresult=i*10
             time=datetime.datetime.now()
             self.update_phase_calc()
-            self._saveline(new=True)
+            self._saveline_reduced(new=True)
             self.model.update_cav_data_by_dict(cavid,{"腔相位":fresult})
             self.model.update_cav_data_by_dict(cavid,{"时间":str(time)})
             scanresults.append((cavid,fresult))
@@ -334,38 +336,48 @@ class MainDialog(QDialog):
             cavid=self.model.recover_cavity_id()
             self.ui.spinBox_cavid.setValue(cavid)
             return
+        
     def save_cavity_data_ui(self):
         if self.current_is_input_coupler():
             return
+        self.saveline_ui(new=True)
         if self.auto_recalculates():
             self.update_phase_calc()
-        self.saveline_ui(new=True)
+        
 
     def update_phase_calc(self):
         if not self.check_input_phase_data_available():
             return
         cavid=int(self.ui.spinBox_cavid.value())
-        self.model.set_current_cavity_id(cavid)
-
+        # self.model.set_current_cavity_id(cavid)
+        if not self.model.cavity_id_exists_in_data(cavid):
+            return 
         try:
             cav_phase=float(self.ui.lineEdit_cav_phase.text())
-            tgt=self.model.target_phase_single_cell(cavid)
-            self.ui.lineEdit_targetphase_singlecell.setText(str(tgt))
-            shift=self.model.calc_phase_shift(cavid,cav_phase)
-            self.ui.lineEdit_single_cell_phase_shift.setText(str(shift))
-            tgt=self.model.target_phase_sum(cavid)
-            self.ui.lineEdit_targetphase_sum.setText(str(tgt))
-            tgt=self.model.target_phase_final(cavid)
-            self.ui.lineEdit_targetphase_average.setText(str(tgt))
+            self.model.set_cavity_phase(cavid,cav_phase)
         
-        except ValueError:
-            print("lineEdit_cav_phase not a number")
+        except ValueError as err:
+            print(err)
             return
         
 
+        cavids_marked_for_calc=[cavid]
+        self.model.recalculate_phase_all(cavids_marked_for_calc)
+
+
+        self.ui.lineEdit_targetphase_singlecell.setText(str(self.model.get_target_phase_single_cell(cavid)))
+        self.ui.lineEdit_single_cell_phase_shift.setText(str(self.model.get_phase_shift(cavid)))
+        self.ui.lineEdit_targetphase_sum.setText(str(self.model.get_target_phase_sum(cavid)))
+        self.ui.lineEdit_targetphase_average.setText(str(self.model.get_target_phase_final(cavid)))
         return
+    
     def ui_calculate_target_phase(self):
         if not self.ui_check_input_phase_data_available():
+            return
+        cavid=int(self.ui.spinBox_cavid.value())
+        if not self.model.cavity_id_exists_in_data(cavid):
+            QMessageBox.critical(None, "错误", 
+                            f"请先保存当前腔数据")
             return
         try:
             self.update_phase_calc()
@@ -532,39 +544,13 @@ class MainDialog(QDialog):
         self.model.update_cav_data_by_dict(cavid,data)
         self.set_ui_data_clean()
         return
-    def _saveline(self,new=False):
-        cavid=self.ui.spinBox_cavid.value()
-        data=self.model.create_empty_dict()
-        if new:
-            time=datetime.datetime.now()
-            data["时间"]=str(time)
-        data["腔ID"]=cavid
-        data["腔位置"]=self.ui.lineEdit_currcavpos.text()
-        data["输入相位"]=self.ui.lineEdit_inputphase.text()
-        data["腔相位"]=self.ui.lineEdit_cav_phase.text()
-        data["单腔相移"]=self.ui.lineEdit_single_cell_phase_shift.text()
-        data["目标相位-累计相移"]=self.ui.lineEdit_targetphase_sum.text()
-        data["目标相位-单腔相移"]=self.ui.lineEdit_targetphase_singlecell.text()
-        data["目标相位"]=self.ui.lineEdit_targetphase_average.text()
-        data["单腔相移误差"]=0
-        data["累计相移误差"]=0
-        data["校准频率(MHz)"]=self.ui.lineEdit_freq_corred.text()
-        data["湿度(%)"]=self.ui.lineEdit_humidity.text()
-        data["气压(Pa)"]=self.ui.lineEdit_airpressure.text()
-        data["腔温(℃)"]=self.ui.lineEdit_cavtemp.text()
-        data["气温(℃)"]=self.ui.lineEdit_airtemp.text()
-        data["真空频率(MHz)"]=self.ui.lineEdit_originfreq.text()
-        data["工作温度(℃)"]=self.ui.lineEdit_operate_temp.text()
-        
-        self.model.update_cav_data_by_dict(cavid,data)
-        self.set_ui_data_clean()
-        return
+
     def saveline_ui(self,new=False):
         ###save with all data
         if not self.ui_check_input_phase_data_available():
             return
         cavid=self.ui.spinBox_cavid.value()
-        self._saveline(new=new)
+        self._saveline_reduced(new=new)
         QMessageBox.information(None, "保存完成", 
                             "id:{} 数据保存完成".format(cavid))
         
