@@ -316,6 +316,21 @@ class CavityPhaseModel(QStandardItemModel):
             raise ValueError("腔体ID:{}不存在".format(cavity_id))
         index=self.columnname.index("单腔相移")
         return float(row[index].text())
+    def record_input_coupler_phase(self,cavity_id:int):
+        row=self.get_row_by_cavity_id(cavity_id)
+        if row is None:
+            raise ValueError("腔体ID:{}不存在".format(cavity_id))
+        index=self.columnname.index("输入相位")
+        row[index].setText(str(self.input_coupler_phase))
+    def set_input_coupler_phase(self,phase:float):
+        self.input_coupler_phase=phase
+        if self.rowCount()==0:
+            return
+        else:
+            self.recalculate_phase_all(dirty_cavids=[1])
+        return
+    def get_input_coupler_phase(self):
+        return self.input_coupler_phase
     def set_target_phase_final(self,cavity_id:int,target_phase:float):
         row=self.get_row_by_cavity_id(cavity_id)
         if row is None:
@@ -391,6 +406,8 @@ class CavityPhaseModel(QStandardItemModel):
         maxcavid=self.get_cavity_id_list()[-1]
         for cavid in range(mincavid,maxcavid+1):
             phase=self.get_phase_by_cavity_id(cavid)
+
+            self.record_input_coupler_phase(cavid)
             ####CALC PHASE SHIFT
             phase_shift=self.calc_phase_shift(cavid,phase)
             self.set_phase_shift(cavid,phase_shift)

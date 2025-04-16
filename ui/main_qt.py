@@ -468,23 +468,19 @@ class MainDialog(QDialog):
         return cond
     
     def set_current_vnc_phase_as_inputphase(self):
-        self.model.input_coupler_phase=float(self.ui.lineEdit_vnc_phase.text())
-        self.get_inputphase_ui()
+        self.ui.lineEdit_inputphase.setText(self.ui.lineEdit_vnc_phase.text())
+        
         
     def set_current_vnc_phase_as_cavity_phase(self):
         self.ui.lineEdit_cav_phase.setText(self.ui.lineEdit_vnc_phase.text())
         self._saveline_reduced(new=True)
 
-    def get_inputphase_ui(self):
-        p=self.model.input_coupler_phase
-        self.ui.lineEdit_inputphase.setText(str(p))
-        return p
     def lock_inputphase(self):
         locked=self.ui.checkBox_lockinputphase.isChecked()
         self.ui.pushButton_setinputphase.setEnabled(not locked)
         self.ui.lineEdit_inputphase.setReadOnly(locked)
         if locked:
-            self.model.input_coupler_phase=float(self.ui.lineEdit_inputphase.text())
+            self.model.set_input_coupler_phase(float(self.ui.lineEdit_inputphase.text()))
             self.ui.checkBox_lockinputphase.setStyleSheet("color: rgb(0, 255, 0);")
             if self.auto_recalculates():
                 self.update_phase_calc()
@@ -548,16 +544,16 @@ class MainDialog(QDialog):
             time=datetime.datetime.now()
             data["时间"]=str(time)
         data["腔ID"]=cavid
-        data["腔位置"]=self.ui.lineEdit_currcavpos.text()
-        data["输入相位"]=self.ui.lineEdit_inputphase.text()
-        data["腔相位"]=self.ui.lineEdit_cav_phase.text()
-        data["校准频率(MHz)"]=self.ui.lineEdit_freq_corred.text()
-        data["湿度(%)"]=self.ui.lineEdit_humidity.text()
-        data["气压(Pa)"]=self.ui.lineEdit_airpressure.text()
-        data["腔温(℃)"]=self.ui.lineEdit_cavtemp.text()
-        data["气温(℃)"]=self.ui.lineEdit_airtemp.text()
-        data["真空频率(MHz)"]=self.ui.lineEdit_originfreq.text()
-        data["工作温度(℃)"]=self.ui.lineEdit_operate_temp.text()
+        data["腔位置"]=float(self.ui.lineEdit_currcavpos.text())
+        data["输入相位"]=float(self.ui.lineEdit_inputphase.text())
+        data["腔相位"]=float(self.ui.lineEdit_cav_phase.text())
+        data["校准频率(MHz)"]=float(self.ui.lineEdit_freq_corred.text())
+        data["湿度(%)"]=float(self.ui.lineEdit_humidity.text())
+        data["气压(Pa)"]=float(self.ui.lineEdit_airpressure.text())
+        data["腔温(℃)"]=float(self.ui.lineEdit_cavtemp.text())
+        data["气温(℃)"]=float(self.ui.lineEdit_airtemp.text())
+        data["真空频率(MHz)"]=float(self.ui.lineEdit_originfreq.text())
+        data["工作温度(℃)"]=float(self.ui.lineEdit_operate_temp.text())
         self.model.update_cav_data_by_dict(cavid,data)
         self.set_ui_data_clean()
         return
