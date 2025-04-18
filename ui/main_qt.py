@@ -410,7 +410,7 @@ class MainDialog(QDialog):
             pos=float(self.ui.lineEdit_relpos.text())
             vel=float(self.ui.lineEdit_relvec.text())
             self.disable_motor_buttons()
-            self._setpos(pos,vel)
+            await self._setpos(pos,vel)
             self.enable_motor_buttons()
             return
         except:
@@ -636,7 +636,7 @@ class MainDialog(QDialog):
     
     @asyncClose
     async def closeEvent(self, event):  # noqa:N802
-        print("closeEvent")
+        print("Main dialog close event")
         if self.client:
             await modbus.stop_PC_control(self.client)
             await modbus.stop_async_simple_client(self.client)
@@ -705,6 +705,7 @@ class MainDialog(QDialog):
         return result
     async def start_vnc_client_ui(self,restart=False,retry_times=3):
         result=await self.start_vnc_client(restart,retry_times)
+        print("starting_vnc_client:",result)
         self.ui.checkBox_VNCstat.setChecked(result)
     async def start_vnc_client(self,restart=False,retry_times=3):
         if self.inst is not None:
@@ -729,6 +730,7 @@ class MainDialog(QDialog):
         return result
     async def start_modbus_client_ui(self,restart=False,retry_times=3):
         result=await self.start_modbus_client(restart,retry_times)
+        print("starting_modbus_client:",result)
         self.ui.checkBox_motorstat.setChecked(result)
         return result
     @asyncSlot()
