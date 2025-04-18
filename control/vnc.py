@@ -1,6 +1,9 @@
 import pyvisa
 from pyvisa import ResourceManager
 from pyvisa.resources import Resource
+
+
+#### VNA Control ####
 def create_visa_client():
 
     rm = pyvisa.ResourceManager() 

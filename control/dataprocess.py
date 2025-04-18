@@ -292,7 +292,7 @@ class CavityPhaseModel(QStandardItemModel):
             return None
         poslist=[]
         for i in range(rowCount):
-            cid=int(self.item(i,self._cavity_position_column_index()).text())
+            cid=float(self.item(i,self._cavity_position_column_index()).text())
             poslist.append(cid)
         return poslist
     def set_cavity_phase(self,cavity_id:int,phase:float):

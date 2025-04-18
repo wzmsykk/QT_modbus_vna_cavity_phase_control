@@ -473,7 +473,7 @@ class MainDialog(QDialog):
         
     def set_current_vnc_phase_as_cavity_phase(self):
         self.ui.lineEdit_cav_phase.setText(self.ui.lineEdit_vnc_phase.text())
-        self._saveline_reduced(new=True)
+        #self._saveline_reduced(new=True)
 
     def lock_inputphase(self):
         locked=self.ui.checkBox_lockinputphase.isChecked()
@@ -489,10 +489,12 @@ class MainDialog(QDialog):
         
         
     def save_current_position_as_cavity_position(self):
-        if self.current_is_input_coupler:
+        if self.current_is_input_coupler():
             return
+        
         self.ui.lineEdit_currcavpos.setText(self.ui.lineEdit_realpos.text())
-        self._saveline_reduced()
+        print("currpos:",self.ui.lineEdit_currcavpos.text())
+        #self._saveline_reduced()
         pass
     def freqcor(self):
         self.app.set_rel_humid(float(self.ui.lineEdit_humidity.text()))
