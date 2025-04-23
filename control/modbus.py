@@ -198,6 +198,8 @@ async def query_all_registers(client: ModbusClient.ModbusBaseClient):
                 i16_v1 = client.convert_from_registers(rr1.registers, data_type=client.DATATYPE.INT16)
                 print(f"Got {key} {value["loc_name"]} int16: {i16_v1}")
 async def send_rel_pos_vel(client,rel_pos,rel_vel):
+    if rel_pos>3000:
+        rel_pos=3000
     await write_bool(client,"PC_M6_Enable",True)       #直线电机轴使能
     #await write_bool(client,"Axis_Clear_Pos6",False)    #直线电机轴清除位置
     await write_float(client,"PC_M6_Realtive_Pos1",rel_pos) #设定直线电机轴相对位置

@@ -778,6 +778,13 @@
             </widget>
            </item>
            <item>
+            <widget class="QPushButton" name="pushButton_savecavpos_set">
+             <property name="text">
+              <string>保存设定位置为腔位置</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <widget class="QLabel" name="label_15">
              <property name="text">
               <string>移动偏移量</string>

@@ -8,6 +8,7 @@ def create_visa_client():
 
     rm = pyvisa.ResourceManager() 
     inst = rm.open_resource('TCPIP0::LINAC::hislip_PXI0_CHASSIS1_SLOT1_INDEX0::INSTR') 
+    
     inst.timeout = 20000 
     return rm, inst
   
@@ -27,11 +28,12 @@ def query_inst_calc(inst:Resource):
     result = inst.query("CALC:PAR:CAT?")
     return result
 def set_meas_mode(inst:Resource):
-    inst.write("CALC:PAR:SEL 'S21'")
+    inst.write("CALC:PAR:SEL 'S11'")
     inst.write("CALC:MEAS:FORM PHASe")
     inst.write("CALC:MEAS:MARK:STAT ON")
 def query_inst_mark(inst:Resource):
-    result = inst.query("CALC:MARK:Y?")
+    result = inst.query("CALC:MEAS:MARK:Y?")
+
     return result
 def convert_mark_result(result:str):
     

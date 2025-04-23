@@ -98,7 +98,8 @@ class MainDialog(QDialog):
         #self.model.data_changed_signal.connect(self.sync_ui_from_model)
 
         self.ui.pushButton_record_vnc_phase.clicked.connect(self.set_current_vnc_phase_as_cavity_phase)
-        self.ui.pushButton_savecavpos.clicked.connect(self.save_current_position_as_cavity_position)
+        self.ui.pushButton_savecavpos.clicked.connect(self.save_real_position_as_cavity_position)
+        self.ui.pushButton_savecavpos_set.clicked.connect(self.save_set_position_as_cavity_position)
         self.ui.pushButton_calc_target_phase.clicked.connect(self.ui_calculate_target_phase)
         self.ui.pushButton_nextcavity.clicked.connect(self.next_cavity)
         self.ui.pushButton_previouscavity.clicked.connect(self.previous_cavity)
@@ -193,7 +194,7 @@ class MainDialog(QDialog):
         self.ui.checkBox_auto_calc.setChecked(False)
         #####START SCAN
         vel=float(self.ui.lineEdit_relvec.text()) ##get velocity
-        wait_time=0.5
+        wait_time=5
         scanresults=[]
         for i in range(len(cavids)):
             cavid=cavids[i]
@@ -400,6 +401,8 @@ class MainDialog(QDialog):
                             "目标相位计算完成")
         return
     async def _setpos(self,pos,vel):
+        if pos>3000:
+            pos=3000
         await modbus.send_rel_pos_vel(self.client,pos,vel)
         await modbus.rel_cmd(self.client)
         await modbus.wait_rel_cmd_done(self.client)
@@ -408,6 +411,9 @@ class MainDialog(QDialog):
     async def setpos_ui(self):
         try:
             pos=float(self.ui.lineEdit_relpos.text())
+            if pos>3000:
+                pos=3000
+                self.ui.lineEdit_relpos.setText(str(pos))
             vel=float(self.ui.lineEdit_relvec.text())
             self.disable_motor_buttons()
             await self._setpos(pos,vel)
@@ -417,12 +423,14 @@ class MainDialog(QDialog):
             return
     @asyncSlot()
     async def resetpos(self):
+
         try:
             await modbus.axis_clear(self.client)
             self.disable_motor_buttons()
             await asyncio.sleep(1)
             await modbus.axis_clear_stop(self.client)
             self.enable_motor_buttons()
+            self.ui.lineEdit_relpos.setText("0")
             return
         except:
             return
@@ -488,11 +496,19 @@ class MainDialog(QDialog):
             self.ui.checkBox_lockinputphase.setStyleSheet("color: rgb(255, 0, 0);")
         
         
-    def save_current_position_as_cavity_position(self):
+    def save_real_position_as_cavity_position(self):
         if self.current_is_input_coupler():
             return
         
         self.ui.lineEdit_currcavpos.setText(self.ui.lineEdit_realpos.text())
+        print("currpos:",self.ui.lineEdit_currcavpos.text())
+        #self._saveline_reduced()
+        pass
+    def save_set_position_as_cavity_position(self):
+        if self.current_is_input_coupler():
+            return
+        
+        self.ui.lineEdit_currcavpos.setText(self.ui.lineEdit_relpos.text())
         print("currpos:",self.ui.lineEdit_currcavpos.text())
         #self._saveline_reduced()
         pass
@@ -575,6 +591,8 @@ class MainDialog(QDialog):
 
         if rowCount>0:
             row=self.model.takeRow(rowCount-1)
+        else:
+            return
         removed_id=self.model.get_cavity_id_from_row(row)
         curr_id=int(self.ui.spinBox_cavid.value())
         if removed_id==curr_id:
