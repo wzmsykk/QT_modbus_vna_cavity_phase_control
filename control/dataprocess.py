@@ -17,12 +17,13 @@ class CavityPhaseModel(QStandardItemModel):
         assert self._phase_round_const>0
         self.current_cavity_id:int=0
         self.previous_cavity_id:int=0
+        self._input_coupler_phase_string:str="输入相位"
         self._cavity_id_name_string:str="腔ID"
         self._cavity_phase_name_string:str="腔相位"
         self._cavity_position_name_string:str="腔位置"
         self._phase_error_sum_name_string:str="累计相移误差"
         self._columnname_ref=["时间","腔ID","腔位置","输入相位","腔相位","单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)"]
-        self.columnname=["时间",self._cavity_id_name_string,self._cavity_position_name_string,"输入相位",self._cavity_phase_name_string,"单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)"]
+        self.columnname=["时间",self._cavity_id_name_string,self._cavity_position_name_string,self._input_coupler_phase_string,self._cavity_phase_name_string,"单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)"]
         assert self._list_eq(self._columnname_ref,self.columnname)
         self.setHorizontalHeaderLabels(self.columnname)
 
@@ -277,6 +278,8 @@ class CavityPhaseModel(QStandardItemModel):
             row=df.iloc[i]
             qrow=[QStandardItem(str(item)) for item in row]
             self.insertRow(i,qrow)
+        ###update input coupler phase
+        self.input_coupler_phase=float(self.item(0,self._get_column_index(self._input_coupler_phase_string)).text())
     def get_cavity_id_list(self):
         rowCount=self.rowCount()
         if rowCount==0:
@@ -320,7 +323,7 @@ class CavityPhaseModel(QStandardItemModel):
         row=self.get_row_by_cavity_id(cavity_id)
         if row is None:
             raise ValueError("腔体ID:{}不存在".format(cavity_id))
-        index=self.columnname.index("输入相位")
+        index=self.columnname.index(self._input_coupler_phase_string)
         row[index].setText(str(self.input_coupler_phase))
     def set_input_coupler_phase(self,phase:float):
         self.input_coupler_phase=phase

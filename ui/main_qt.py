@@ -616,11 +616,22 @@ class MainDialog(QDialog):
             self.model.read_csv(file_path)
         except PermissionError:
             QMessageBox.critical(None, "错误", "没有读取权限，请确定权限")
+            return
         except Exception as e:
             QMessageBox.critical(None, "错误", f"读取文件时出错: {str(e)}")
+            return
 
         # 更新UI
+        if self.ui.checkBox_lockinputphase.isChecked():
+            self.ui.checkBox_lockinputphase.setChecked(False)
+
+        
+        self.ui.lineEdit_inputphase.setText(str(self.model.get_input_coupler_phase()))
+        self.ui.checkBox_lockinputphase.setChecked(True)
+
         self.ui.spinBox_cavid.setValue(1)
+        self.ui_update_cavity_id()
+
         return
 
     def save_csv_ui(self):
