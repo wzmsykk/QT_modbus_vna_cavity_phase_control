@@ -6,7 +6,7 @@ from PyQt5.QtCore import pyqtSignal
 from qasync import asyncClose, asyncSlot
 from .main_dlg import Ui_Dialog
 import control.modbus as modbus
-from pymodbus.exceptions import ConnectionException
+from pymodbus.exceptions import ConnectionException,ModbusIOException
 import control.vnc as vnc
 from pyvisa.errors import VisaIOError
 import control.convertf as convertf
@@ -780,7 +780,12 @@ class MainDialog(QDialog):
                 print("ModbusConnectionException")
                 await asyncio.sleep(1)
                 continue
-
+            except ModbusIOException:
+                self.client = None
+                print("ModbusIOException")
+                await asyncio.sleep(1)
+                continue
+            
             return True
         return False    
     async def start_convertf_app(self):

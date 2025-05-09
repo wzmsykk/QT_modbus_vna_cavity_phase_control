@@ -19,6 +19,8 @@ class ConvertfApp():
         return app
     def stop_app(self):
         self.app["Resonant Frequency Conversion"]['Stop programButton'].click()
+        self.app.kill()
+        print("Convertf app closed")
     def set_temp_celsius(self):
         self.app["Resonant Frequency Conversion"]['degrees C'].click()
     def set_pressure_mBar(self):
@@ -89,3 +91,4 @@ class ConvertfApp():
         freq=float(result[1].split()[3])
         offset=float(result[2].split()[3])
         return freq,offset
+    

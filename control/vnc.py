@@ -3,7 +3,7 @@ from pyvisa import ResourceManager
 from pyvisa.resources import Resource
 
 
-#### VNA Control ####
+#### VNC Control ####
 def create_visa_client():
 
     rm = pyvisa.ResourceManager() 
@@ -15,7 +15,7 @@ def create_visa_client():
 def close_visa_client(rm:ResourceManager, inst:Resource):
     inst.close()
     rm.close()
-
+    print("VNC client closed")
 def query_visa_client(inst:Resource, cmd:str):
     result = inst.query(cmd)
     return result
