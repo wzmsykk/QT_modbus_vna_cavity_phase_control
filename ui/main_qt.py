@@ -309,7 +309,8 @@ class MainDialog(QDialog):
             QMessageBox.critical(None, "错误",
                                  f"请先保存当前腔数据")
             return
-        
+        if self.inst:
+            self.ui.lineEdit_currcavpos.setText(str(self.ui.lineEdit_relpos.text()))
         self.ui.spinBox_cavid.setValue(id+1)
         return
     def previous_cavity(self):
@@ -381,6 +382,8 @@ class MainDialog(QDialog):
         self.ui.lineEdit_single_cell_phase_shift.setText(str(self.model.get_phase_shift(cavid)))
         self.ui.lineEdit_targetphase_sum.setText(str(self.model.get_target_phase_sum(cavid)))
         self.ui.lineEdit_targetphase_average.setText(str(self.model.get_target_phase_final(cavid)))
+        self.ui.lineEdit_singlecell_phase_error.setText(str(self.model.get_phase_error_single_cell(cavid)))
+        self.ui.lineEdit_sum_phase_error.setText(str(self.model.get_phase_error_sum(cavid)))
         return
     
     def ui_calculate_target_phase(self):
@@ -501,7 +504,7 @@ class MainDialog(QDialog):
             return
         
         self.ui.lineEdit_currcavpos.setText(self.ui.lineEdit_realpos.text())
-        print("currpos:",self.ui.lineEdit_currcavpos.text())
+        # print("currpos:",self.ui.lineEdit_currcavpos.text())
         #self._saveline_reduced()
         pass
     def save_set_position_as_cavity_position(self):
@@ -509,7 +512,7 @@ class MainDialog(QDialog):
             return
         
         self.ui.lineEdit_currcavpos.setText(self.ui.lineEdit_relpos.text())
-        print("currpos:",self.ui.lineEdit_currcavpos.text())
+        # print("currpos:",self.ui.lineEdit_currcavpos.text())
         #self._saveline_reduced()
         pass
     def freqcor(self):
@@ -550,7 +553,10 @@ class MainDialog(QDialog):
     def save_newline(self):
         if not self.ui_check_input_phase_data_available():
             return
-        self._saveline_reduced(new=True)
+        try:
+            self._saveline_reduced(new=True)
+        except ValueError as err:
+            print(err)
 
     def _saveline_reduced(self,new=False):
         ###save data with no calcs
@@ -561,19 +567,22 @@ class MainDialog(QDialog):
         if new:
             time=datetime.datetime.now()
             data["时间"]=str(time)
-        data["腔ID"]=cavid
-        data["腔位置"]=float(self.ui.lineEdit_currcavpos.text())
-        data["输入相位"]=float(self.ui.lineEdit_inputphase.text())
-        data["腔相位"]=float(self.ui.lineEdit_cav_phase.text())
-        data["校准频率(MHz)"]=float(self.ui.lineEdit_freq_corred.text())
-        data["湿度(%)"]=float(self.ui.lineEdit_humidity.text())
-        data["气压(Pa)"]=float(self.ui.lineEdit_airpressure.text())
-        data["腔温(℃)"]=float(self.ui.lineEdit_cavtemp.text())
-        data["气温(℃)"]=float(self.ui.lineEdit_airtemp.text())
-        data["真空频率(MHz)"]=float(self.ui.lineEdit_originfreq.text())
-        data["工作温度(℃)"]=float(self.ui.lineEdit_operate_temp.text())
-        self.model.update_cav_data_by_dict(cavid,data)
-        self.set_ui_data_clean()
+        try:
+            data["腔ID"]=cavid
+            data["腔位置"]=float(self.ui.lineEdit_currcavpos.text())
+            data["输入相位"]=float(self.ui.lineEdit_inputphase.text())
+            data["腔相位"]=float(self.ui.lineEdit_cav_phase.text())
+            data["校准频率(MHz)"]=float(self.ui.lineEdit_freq_corred.text())
+            data["湿度(%)"]=float(self.ui.lineEdit_humidity.text())
+            data["气压(Pa)"]=float(self.ui.lineEdit_airpressure.text())
+            data["腔温(℃)"]=float(self.ui.lineEdit_cavtemp.text())
+            data["气温(℃)"]=float(self.ui.lineEdit_airtemp.text())
+            data["真空频率(MHz)"]=float(self.ui.lineEdit_originfreq.text())
+            data["工作温度(℃)"]=float(self.ui.lineEdit_operate_temp.text())
+            self.model.update_cav_data_by_dict(cavid,data)
+            self.set_ui_data_clean()
+        except:
+            raise ValueError("数据格式错误，请检查输入")
         return
 
     def saveline_ui(self,new=False):
@@ -581,7 +590,12 @@ class MainDialog(QDialog):
         if not self.ui_check_input_phase_data_available():
             return
         cavid=self.ui.spinBox_cavid.value()
-        self._saveline_reduced(new=new)
+        try:
+            self._saveline_reduced(new=new)
+        except ValueError as err:
+            QMessageBox.warning(None, "保存失败", 
+                            "id:{} 请检查数据格式".format(cavid))
+            return
         QMessageBox.information(None, "保存完成", 
                             "id:{} 数据保存完成".format(cavid))
         
@@ -726,10 +740,12 @@ class MainDialog(QDialog):
         
         task1=event_loop.create_task(self.start_modbus_client_ui())
         task2=event_loop.create_task(self.start_vnc_client_ui())
-        await task1
-        await task2
         
-        event_loop.create_task(self.query_modbus_first())
+        
+        # await task1
+        # await task2
+        
+        
         event_loop.create_task(self.query_modbus_period(),name="query_modbus_period")
         event_loop.create_task(self.query_vnc_period(),name="query_vnc_period")
         
