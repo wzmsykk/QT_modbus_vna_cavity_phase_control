@@ -119,6 +119,9 @@
    </item>
    <item>
     <widget class="QTabWidget" name="tabWidget">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
        <horstretch>0</horstretch>
@@ -126,7 +129,7 @@
       </sizepolicy>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <property name="tabBarAutoHide">
       <bool>false</bool>
@@ -1199,10 +1202,10 @@
               <string>电机已连接</string>
              </property>
              <property name="checkable">
-              <bool>true</bool>
+              <bool>false</bool>
              </property>
              <property name="checked">
-              <bool>true</bool>
+              <bool>false</bool>
              </property>
              <property name="tristate">
               <bool>false</bool>
@@ -1235,8 +1238,8 @@
       <widget class="QPushButton" name="pushButton_savecavpos">
        <property name="geometry">
         <rect>
-         <x>170</x>
-         <y>180</y>
+         <x>160</x>
+         <y>220</y>
          <width>141</width>
          <height>21</height>
         </rect>
@@ -1252,7 +1255,7 @@
        <property name="geometry">
         <rect>
          <x>170</x>
-         <y>90</y>
+         <y>120</y>
          <width>165</width>
          <height>19</height>
         </rect>
@@ -1265,7 +1268,7 @@
        <property name="geometry">
         <rect>
          <x>170</x>
-         <y>120</y>
+         <y>150</y>
          <width>165</width>
          <height>19</height>
         </rect>
@@ -1277,8 +1280,8 @@
       <widget class="QLabel" name="label_18">
        <property name="geometry">
         <rect>
-         <x>20</x>
-         <y>120</y>
+         <x>10</x>
+         <y>150</y>
          <width>148</width>
          <height>19</height>
         </rect>
@@ -1298,7 +1301,7 @@
        <property name="geometry">
         <rect>
          <x>20</x>
-         <y>150</y>
+         <y>180</y>
          <width>141</width>
          <height>20</height>
         </rect>
@@ -1313,8 +1316,8 @@
       <widget class="QLabel" name="label_8">
        <property name="geometry">
         <rect>
-         <x>20</x>
-         <y>90</y>
+         <x>10</x>
+         <y>120</y>
          <width>148</width>
          <height>19</height>
         </rect>
@@ -1333,8 +1336,8 @@
       <widget class="QPushButton" name="pushButton_calc_target_phase">
        <property name="geometry">
         <rect>
-         <x>20</x>
-         <y>180</y>
+         <x>10</x>
+         <y>220</y>
          <width>131</width>
          <height>23</height>
         </rect>
@@ -1344,6 +1347,58 @@
        </property>
        <property name="text">
         <string>计算目标相位</string>
+       </property>
+      </widget>
+      <widget class="QLineEdit" name="lineEdit_max_sum_error_abs">
+       <property name="geometry">
+        <rect>
+         <x>160</x>
+         <y>70</y>
+         <width>151</width>
+         <height>20</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>2.0</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_27">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>70</y>
+         <width>131</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>累计相移误差上限(deg)</string>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_28">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>40</y>
+         <width>131</width>
+         <height>16</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>单腔相移误差上限(deg)</string>
+       </property>
+      </widget>
+      <widget class="QLineEdit" name="lineEdit_max_single_cell_error_abs">
+       <property name="geometry">
+        <rect>
+         <x>160</x>
+         <y>40</y>
+         <width>151</width>
+         <height>20</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>1.0</string>
        </property>
       </widget>
      </widget>

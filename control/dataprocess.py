@@ -1,5 +1,6 @@
 
 import datetime
+import re
 from PyQt5 import QtCore
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtCore import pyqtSignal
@@ -13,6 +14,8 @@ class CavityPhaseModel(QStandardItemModel):
         QStandardItemModel.__init__(self, parent)
         self.input_coupler_phase:float=0
         self.designed_shift_per_cell:float=240
+        self.max_single_cell_phase_error_abs:float=1.0
+        self.max_sum_phase_error_abs:float=2.0
         self._phase_round_const:float=360 ###360 for deg, 2Pi for rad
         assert self._phase_round_const>0
         self.current_cavity_id:int=0
@@ -74,6 +77,14 @@ class CavityPhaseModel(QStandardItemModel):
     def recover_cavity_id(self):
         self.current_cavity_id=self.previous_cavity_id
         return self.current_cavity_id
+    def is_single_cell_phase_error_acceptable(self,phase_error:float)->bool:
+        if abs(phase_error)>self.max_single_cell_phase_error_abs:
+            return False
+        return True
+    def is_sum_phase_error_acceptable(self,phase_error:float)->bool:
+        if abs(phase_error)>self.max_sum_phase_error_abs:
+            return False
+        return True
     def get_phase_by_cavity_id(self,cavity_id:int):
         cav_index=self._search_index_from_cavity_id(cavity_id)
         if cav_index is None:

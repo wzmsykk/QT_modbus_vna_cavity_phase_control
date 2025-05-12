@@ -61,14 +61,17 @@ class MainDialog(QDialog):
         assert self.model._list_eq(self.model.columnname,self.columnname)
 
         self.set_ui_data_dirty()
-
+        self.setup_text()
         
         self.query_delay=1 ## in seconds
         
-
+        self.ui.tabWidget.setTabVisible(3, False) ##hide advanced tab
         self._set_signal_slots()
         self._set_data_edited_signals()
-
+    def setup_text(self):
+        self.ui.lineEdit_max_single_cell_error_abs.setText(str(self.model.max_single_cell_phase_error_abs))
+        self.ui.lineEdit_max_sum_error_abs.setText(str(self.model.max_sum_phase_error_abs))
+        pass
     async def _show_aysnc_messagebox(self, title:str, message:str):
         self.message_box.show()
         self.message_box.setText(message)
@@ -363,6 +366,9 @@ class MainDialog(QDialog):
             return
         cavid=int(self.ui.spinBox_cavid.value())
         # self.model.set_current_cavity_id(cavid)
+        if cavid==1 and not self.model.cavity_id_exists_in_data(cavid):
+            self.ui.lineEdit_targetphase_average.setText(str(self.model.calc_target_phase_final(cavid)))
+            return
         if not self.model.cavity_id_exists_in_data(cavid):
             return 
         try:
@@ -382,8 +388,19 @@ class MainDialog(QDialog):
         self.ui.lineEdit_single_cell_phase_shift.setText(str(self.model.get_phase_shift(cavid)))
         self.ui.lineEdit_targetphase_sum.setText(str(self.model.get_target_phase_sum(cavid)))
         self.ui.lineEdit_targetphase_average.setText(str(self.model.get_target_phase_final(cavid)))
-        self.ui.lineEdit_singlecell_phase_error.setText(str(self.model.get_phase_error_single_cell(cavid)))
-        self.ui.lineEdit_sum_phase_error.setText(str(self.model.get_phase_error_sum(cavid)))
+        
+        singlecell_phase_error=self.model.get_phase_error_single_cell(cavid)
+        self.ui.lineEdit_singlecell_phase_error.setText(str(singlecell_phase_error))
+        if self.model.is_single_cell_phase_error_acceptable(singlecell_phase_error):
+            self.ui.lineEdit_singlecell_phase_error.setStyleSheet("background-color: green;")
+        else:
+            self.ui.lineEdit_singlecell_phase_error.setStyleSheet("background-color: red;")
+        sum_phase_error=self.model.get_phase_error_sum(cavid)
+        self.ui.lineEdit_sum_phase_error.setText(str(sum_phase_error))
+        if self.model.is_sum_phase_error_acceptable(sum_phase_error):
+            self.ui.lineEdit_sum_phase_error.setStyleSheet("background-color: green;")
+        else:
+            self.ui.lineEdit_sum_phase_error.setStyleSheet("background-color: red;")
         return
     
     def ui_calculate_target_phase(self):
@@ -732,6 +749,7 @@ class MainDialog(QDialog):
         self.ui.lineEdit_freq_corred.setText(str(self.app.get_results()[0]))
         self.ui.lineEdit_freqoffset.setText(str(self.app.get_results()[1]))
         
+    
     async def start(self):
         event_loop=asyncio.get_event_loop()
         task_app=event_loop.create_task(self.start_convertf_app())
