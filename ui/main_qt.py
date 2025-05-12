@@ -82,6 +82,7 @@ class MainDialog(QDialog):
 
     def _set_signal_slots(self):
         self.ui.pushButton_setpos.clicked.connect(self.setpos_ui)
+        self.ui.pushButton_movetocavpos.clicked.connect(self.setpos2cavpos)
         self.ui.pushButton_resetpos.clicked.connect(self.resetpos)
         self.ui.pushButton_savecurr.clicked.connect(self.save_cavity_data_ui)
         self.ui.pushButton_deldata.clicked.connect(self.delete_last_line)
@@ -437,6 +438,20 @@ class MainDialog(QDialog):
             vel=float(self.ui.lineEdit_relvec.text())
             self.disable_motor_buttons()
             await self._setpos(pos,vel)
+            self.enable_motor_buttons()
+            return
+        except:
+            return
+    @asyncSlot()
+    async def setpos2cavpos(self):
+        try:
+            postarget=float(self.ui.lineEdit_currcavpos.text())
+            poscurr=float(self.ui.lineEdit_relpos.text())
+            if poscurr==postarget:
+                return
+            vel=float(self.ui.lineEdit_relvec.text())
+            self.disable_motor_buttons()
+            await self._setpos(postarget,vel)
             self.enable_motor_buttons()
             return
         except:
