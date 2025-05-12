@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>726</width>
-    <height>766</height>
+    <height>732</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -57,9 +57,16 @@
       </item>
       <item>
        <widget class="QLineEdit" name="lineEdit_vnc_phase">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="font">
          <font>
-          <pointsize>12</pointsize>
+          <family>宋体</family>
+          <pointsize>20</pointsize>
           <weight>75</weight>
           <bold>true</bold>
          </font>
@@ -73,17 +80,39 @@
        </widget>
       </item>
       <item>
-       <spacer name="horizontalSpacer_2">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
+       <widget class="QLabel" name="label_19">
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
         </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
+        <property name="text">
+         <string>目标相位(deg)</string>
         </property>
-       </spacer>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="lineEdit_targetphase_average">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="font">
+         <font>
+          <family>宋体</family>
+          <pointsize>20</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>
@@ -97,7 +126,10 @@
       </sizepolicy>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
+     </property>
+     <property name="tabBarAutoHide">
+      <bool>false</bool>
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
@@ -398,6 +430,12 @@
       <layout class="QVBoxLayout" name="verticalLayout_12">
        <item>
         <widget class="QGroupBox" name="groupBox_6">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>142</height>
+          </size>
+         </property>
          <property name="title">
           <string>腔体</string>
          </property>
@@ -478,27 +516,6 @@
                   </property>
                  </widget>
                 </item>
-                <item row="1" column="0">
-                 <widget class="QLabel" name="label_19">
-                  <property name="font">
-                   <font>
-                    <pointsize>12</pointsize>
-                    <weight>75</weight>
-                    <bold>true</bold>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string>目标相位-平均(deg)</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="1" column="1">
-                 <widget class="QLineEdit" name="lineEdit_targetphase_average">
-                  <property name="readOnly">
-                   <bool>true</bool>
-                  </property>
-                 </widget>
-                </item>
                 <item row="2" column="0">
                  <widget class="QLabel" name="label_24">
                   <property name="font">
@@ -527,12 +544,41 @@
                   </property>
                  </widget>
                 </item>
+                <item row="1" column="0">
+                 <widget class="QLabel" name="label_25">
+                  <property name="font">
+                   <font>
+                    <family>宋体</family>
+                    <pointsize>12</pointsize>
+                    <weight>75</weight>
+                    <bold>true</bold>
+                   </font>
+                  </property>
+                  <property name="text">
+                   <string>单腔相移误差(deg)</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="1">
+                 <widget class="QLineEdit" name="lineEdit_singlecell_phase_error">
+                  <property name="font">
+                   <font>
+                    <pointsize>12</pointsize>
+                    <weight>75</weight>
+                    <bold>true</bold>
+                   </font>
+                  </property>
+                  <property name="readOnly">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
                </layout>
               </widget>
              </item>
              <item>
               <widget class="QWidget" name="widget" native="true">
-               <layout class="QFormLayout" name="formLayout_8">
+               <layout class="QFormLayout" name="formLayout_5">
                 <item row="0" column="0">
                  <widget class="QLabel" name="label_21">
                   <property name="font">
@@ -549,6 +595,12 @@
                 </item>
                 <item row="0" column="1">
                  <widget class="QLineEdit" name="lineEdit_single_cell_phase_shift">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
                   <property name="font">
                    <font>
                     <pointsize>12</pointsize>
@@ -562,7 +614,7 @@
                  </widget>
                 </item>
                 <item row="1" column="0">
-                 <widget class="QLabel" name="label_8">
+                 <widget class="QLabel" name="label_26">
                   <property name="font">
                    <font>
                     <pointsize>12</pointsize>
@@ -571,39 +623,11 @@
                    </font>
                   </property>
                   <property name="text">
-                   <string>目标相位-单腔(deg)</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="1" column="1">
-                 <widget class="QLineEdit" name="lineEdit_targetphase_singlecell">
-                  <property name="readOnly">
-                   <bool>true</bool>
+                   <string>累计相移误差(deg)</string>
                   </property>
                  </widget>
                 </item>
                 <item row="2" column="0">
-                 <widget class="QLabel" name="label_18">
-                  <property name="font">
-                   <font>
-                    <pointsize>12</pointsize>
-                    <weight>75</weight>
-                    <bold>true</bold>
-                   </font>
-                  </property>
-                  <property name="text">
-                   <string>目标相位-累计(deg)</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="2" column="1">
-                 <widget class="QLineEdit" name="lineEdit_targetphase_sum">
-                  <property name="readOnly">
-                   <bool>true</bool>
-                  </property>
-                 </widget>
-                </item>
-                <item row="3" column="0">
                  <widget class="QLabel" name="label_17">
                   <property name="font">
                    <font>
@@ -617,8 +641,14 @@
                   </property>
                  </widget>
                 </item>
-                <item row="3" column="1">
+                <item row="2" column="1">
                  <widget class="QLineEdit" name="lineEdit_currcavpos">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
                   <property name="font">
                    <font>
                     <pointsize>12</pointsize>
@@ -628,6 +658,17 @@
                   </property>
                   <property name="text">
                    <string>0</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="1">
+                 <widget class="QLineEdit" name="lineEdit_sum_phase_error">
+                  <property name="font">
+                   <font>
+                    <pointsize>12</pointsize>
+                    <weight>75</weight>
+                    <bold>true</bold>
+                   </font>
                   </property>
                  </widget>
                 </item>
@@ -670,27 +711,21 @@
                 <enum>Qt::NoFocus</enum>
                </property>
                <property name="text">
-                <string>记录当前VNC相位</string>
+                <string>记录当前VNA相位</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QCheckBox" name="checkBox_auto_calc">
+              <widget class="QPushButton" name="pushButton_savecavpos_set">
                <property name="text">
-                <string>自动计算目标相位</string>
-               </property>
-               <property name="checked">
-                <bool>true</bool>
+                <string>保存当前位置为腔位置</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="pushButton_calc_target_phase">
-               <property name="focusPolicy">
-                <enum>Qt::NoFocus</enum>
-               </property>
+              <widget class="QPushButton" name="pushButton_movetocavpos">
                <property name="text">
-                <string>计算目标相位</string>
+                <string>移动到腔所在位置</string>
                </property>
               </widget>
              </item>
@@ -807,16 +842,6 @@
                </property>
               </widget>
              </item>
-             <item>
-              <widget class="QPushButton" name="pushButton_savecavpos">
-               <property name="focusPolicy">
-                <enum>Qt::NoFocus</enum>
-               </property>
-               <property name="text">
-                <string>保存实际位置为腔位置</string>
-               </property>
-              </widget>
-             </item>
             </layout>
            </widget>
           </item>
@@ -855,13 +880,6 @@
                </property>
                <property name="text">
                 <string>手动定位</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QPushButton" name="pushButton_savecavpos_set">
-               <property name="text">
-                <string>保存设定位置为腔位置</string>
                </property>
               </widget>
              </item>
@@ -1125,7 +1143,7 @@
      </widget>
      <widget class="QWidget" name="tab_3">
       <attribute name="title">
-       <string>其他</string>
+       <string>重连</string>
       </attribute>
       <widget class="QGroupBox" name="groupBox_2">
        <property name="geometry">
@@ -1133,7 +1151,7 @@
          <x>10</x>
          <y>20</y>
          <width>199</width>
-         <height>102</height>
+         <height>141</height>
         </rect>
        </property>
        <property name="title">
@@ -1143,6 +1161,19 @@
         <item>
          <widget class="QWidget" name="widget_8" native="true">
           <layout class="QGridLayout" name="gridLayout">
+           <item row="0" column="1">
+            <widget class="QPushButton" name="pushButton_reconnectVNC">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
+             </property>
+             <property name="text">
+              <string>重连VNC</string>
+             </property>
+            </widget>
+           </item>
            <item row="0" column="0">
             <widget class="QCheckBox" name="checkBox_VNCstat">
              <property name="enabled">
@@ -1156,19 +1187,6 @@
              </property>
              <property name="autoRepeat">
               <bool>false</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QPushButton" name="pushButton_reconnectVNC">
-             <property name="enabled">
-              <bool>true</bool>
-             </property>
-             <property name="focusPolicy">
-              <enum>Qt::NoFocus</enum>
-             </property>
-             <property name="text">
-              <string>重连VNC</string>
              </property>
             </widget>
            </item>
@@ -1208,6 +1226,125 @@
          </widget>
         </item>
        </layout>
+      </widget>
+     </widget>
+     <widget class="QWidget" name="tab_4">
+      <attribute name="title">
+       <string>其他</string>
+      </attribute>
+      <widget class="QPushButton" name="pushButton_savecavpos">
+       <property name="geometry">
+        <rect>
+         <x>170</x>
+         <y>180</y>
+         <width>141</width>
+         <height>21</height>
+        </rect>
+       </property>
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
+       <property name="text">
+        <string>保存实际位置为腔位置</string>
+       </property>
+      </widget>
+      <widget class="QLineEdit" name="lineEdit_targetphase_singlecell">
+       <property name="geometry">
+        <rect>
+         <x>170</x>
+         <y>90</y>
+         <width>165</width>
+         <height>19</height>
+        </rect>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+      <widget class="QLineEdit" name="lineEdit_targetphase_sum">
+       <property name="geometry">
+        <rect>
+         <x>170</x>
+         <y>120</y>
+         <width>165</width>
+         <height>19</height>
+        </rect>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_18">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>120</y>
+         <width>148</width>
+         <height>19</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>12</pointsize>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>目标相位-累计(deg)</string>
+       </property>
+      </widget>
+      <widget class="QCheckBox" name="checkBox_auto_calc">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>150</y>
+         <width>141</width>
+         <height>20</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>自动计算目标相位</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+      <widget class="QLabel" name="label_8">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>90</y>
+         <width>148</width>
+         <height>19</height>
+        </rect>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>12</pointsize>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>目标相位-单腔(deg)</string>
+       </property>
+      </widget>
+      <widget class="QPushButton" name="pushButton_calc_target_phase">
+       <property name="geometry">
+        <rect>
+         <x>20</x>
+         <y>180</y>
+         <width>131</width>
+         <height>23</height>
+        </rect>
+       </property>
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
+       <property name="text">
+        <string>计算目标相位</string>
+       </property>
       </widget>
      </widget>
     </widget>

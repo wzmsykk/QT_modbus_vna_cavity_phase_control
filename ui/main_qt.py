@@ -681,7 +681,7 @@ class MainDialog(QDialog):
         event.accept()
     async def query_modbus_first(self):
         if self.client is None:
-            print("modbus client not connected")
+            print("Modbus server failed to connect.")
             return
         self.ui.lineEdit_relvec.setText(str(await modbus.read_float(self.client,"PC_M6_Realtive_Vel1")))
         self.ui.lineEdit_relpos.setText(str(await modbus.read_float(self.client,"PC_M6_Realtive_Pos1")))
@@ -717,18 +717,22 @@ class MainDialog(QDialog):
         self.app.update_result()
         self.ui.lineEdit_freq_corred.setText(str(self.app.get_results()[0]))
         self.ui.lineEdit_freqoffset.setText(str(self.app.get_results()[1]))
+        
     async def start(self):
         event_loop=asyncio.get_event_loop()
+        task_app=event_loop.create_task(self.start_convertf_app())
+        await task_app
+        event_loop.create_task(self.query_app_first())
+        
         task1=event_loop.create_task(self.start_modbus_client_ui())
         task2=event_loop.create_task(self.start_vnc_client_ui())
-        task3=event_loop.create_task(self.start_convertf_app())
         await task1
         await task2
-        await task3
+        
         event_loop.create_task(self.query_modbus_first())
         event_loop.create_task(self.query_modbus_period(),name="query_modbus_period")
         event_loop.create_task(self.query_vnc_period(),name="query_vnc_period")
-        event_loop.create_task(self.query_app_first())
+        
 
     @asyncSlot()
     async def start_vnc_client_button(self):
@@ -777,12 +781,12 @@ class MainDialog(QDialog):
                 await modbus.start_PC_control(self.client)
             except ConnectionException:
                 self.client = None
-                print("ModbusConnectionException")
+                print(f"Try {i} Starting Modbus Client Error:ConnectionException")
                 await asyncio.sleep(1)
                 continue
             except ModbusIOException:
                 self.client = None
-                print("ModbusIOException")
+                print(f"Try {i} Starting Modbus Client Error:IOException")
                 await asyncio.sleep(1)
                 continue
             

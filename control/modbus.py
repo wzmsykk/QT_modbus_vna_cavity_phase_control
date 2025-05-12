@@ -124,11 +124,11 @@ async def start_async_simple_client(host, port, framer=FramerType.SOCKET, refres
     )
     
 
-    print("connect to server")
+    print("Modbus Client: Connecting to server",host)
     connect_result=await client.connect()
     # test client is connected
     if connect_result==True:
-        print("connected")
+        print("Modbus Client: Connected to server:",host)
     else:
         raise ConnectionException
     return client
