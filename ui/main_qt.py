@@ -422,6 +422,8 @@ class MainDialog(QDialog):
                             "目标相位计算完成")
         return
     async def _setpos(self,pos,vel):
+        if self.client is None:
+            return
         if pos>3000:
             pos=3000
         await modbus.send_rel_pos_vel(self.client,pos,vel)
