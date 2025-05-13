@@ -777,10 +777,10 @@ class MainDialog(QDialog):
         task2=event_loop.create_task(self.start_vnc_client_ui())
         
         
-        # await task1
-        # await task2
+        await task1
+        await task2
         
-        
+        await self.query_modbus_first()
         event_loop.create_task(self.query_modbus_period(),name="query_modbus_period")
         event_loop.create_task(self.query_vnc_period(),name="query_vnc_period")
         

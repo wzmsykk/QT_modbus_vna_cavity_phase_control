@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>726</width>
+    <width>829</width>
     <height>732</height>
    </rect>
   </property>
@@ -797,7 +797,11 @@
               </widget>
              </item>
              <item>
-              <widget class="QLineEdit" name="lineEdit_relvec"/>
+              <widget class="QLineEdit" name="lineEdit_relvec">
+               <property name="text">
+                <string>10</string>
+               </property>
+              </widget>
              </item>
              <item>
               <widget class="QLabel" name="label_12">
@@ -874,7 +878,11 @@
               </widget>
              </item>
              <item>
-              <widget class="QLineEdit" name="lineEdit_relpos"/>
+              <widget class="QLineEdit" name="lineEdit_relpos">
+               <property name="text">
+                <string>0</string>
+               </property>
+              </widget>
              </item>
              <item>
               <widget class="QPushButton" name="pushButton_setpos">
@@ -1202,7 +1210,7 @@
               <string>电机已连接</string>
              </property>
              <property name="checkable">
-              <bool>false</bool>
+              <bool>true</bool>
              </property>
              <property name="checked">
               <bool>false</bool>
