@@ -198,7 +198,8 @@ class MainDialog(QDialog):
         self.ui.checkBox_auto_calc.setChecked(False)
         #####START SCAN
         vel=float(self.ui.lineEdit_relvec.text()) ##get velocity
-        wait_time=5
+        wait_time_pre=4
+        wait_time_post=1
         scanresults=[]
         for i in range(len(cavids)):
             cavid=cavids[i]
@@ -206,7 +207,7 @@ class MainDialog(QDialog):
             self.ui.spinBox_cavid.setValue(cavid)
             
             await self._setpos(cavpos,vel)
-            await asyncio.sleep(wait_time)
+            await asyncio.sleep(wait_time_pre)
             try:
                 fresult=vnc.get_phase(self.inst)
             except VisaIOError:
@@ -221,6 +222,7 @@ class MainDialog(QDialog):
                     return
                 else:
                     fresult=i*10
+            await asyncio.sleep(wait_time_post)
             time=datetime.datetime.now()
             self.update_phase_calc()
             self._saveline_reduced(new=True)
@@ -267,11 +269,13 @@ class MainDialog(QDialog):
         self.ui.pushButton_resetpos.setEnabled(False)
         self.ui.pushButton_addmov.setEnabled(False)
         self.ui.pushButton_savecavpos.setEnabled(False)
+        self.ui.pushButton_movetocavpos.setEnabled(False)
     def enable_motor_buttons(self):
         self.ui.pushButton_setpos.setEnabled(True)
         self.ui.pushButton_resetpos.setEnabled(True)
         self.ui.pushButton_addmov.setEnabled(True)
         self.ui.pushButton_savecavpos.setEnabled(True)
+        self.ui.pushButton_movetocavpos.setEnabled(True)
     def is_motor_connected(self):
         if self.client is None:
             return False
@@ -343,6 +347,10 @@ class MainDialog(QDialog):
                 self.update_phase_calc()
             return
         else:
+            cavid=self.model.recover_cavity_id()
+            self.ui.spinBox_cavid.setValue(cavid)
+            return
+        ###### DONT CREATE NEW LINE FROM COMBOBOX
             self.save_newline()
             self.set_ui_data_dirty()
         try:
@@ -451,6 +459,7 @@ class MainDialog(QDialog):
             poscurr=float(self.ui.lineEdit_relpos.text())
             if poscurr==postarget:
                 return
+            self.ui.lineEdit_relpos.setText(str(postarget))
             vel=float(self.ui.lineEdit_relvec.text())
             self.disable_motor_buttons()
             await self._setpos(postarget,vel)
