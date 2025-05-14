@@ -65,7 +65,7 @@ class MainDialog(QDialog):
         
         self.query_delay=1 ## in seconds
         
-        #self.ui.tabWidget.setTabVisible(3, False) ##hide advanced tab
+        self.ui.tabWidget.setTabVisible(3, False) ##hide advanced tab
         self._set_signal_slots()
         self._set_data_edited_signals()
     def setup_text(self):
