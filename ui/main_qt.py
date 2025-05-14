@@ -126,19 +126,19 @@ class MainDialog(QDialog):
     def update_vnc_phase_view(self):
         try:
             vnc_phase=float(self.ui.lineEdit_vnc_phase.text())
-            self.ui.lineEdit_vnc_phase_view.setText(str(round(vnc_phase,3)))
+            self.ui.lineEdit_vnc_phase_view.setText("{:.3f}".format(round(vnc_phase,3)))
         except:
             return
     def update_cav_phase_view(self):
         try:
             cav_phase=float(self.ui.lineEdit_cav_phase.text())
-            self.ui.lineEdit_cav_phase_view.setText(str(round(cav_phase,3)))
+            self.ui.lineEdit_cav_phase_view.setText("{:.3f}".format(round(cav_phase,3)))
         except:
             return
     def update_target_phase_view(self):
         try:
             target_phase=float(self.ui.lineEdit_targetphase_average.text())
-            self.ui.lineEdit_targetphase_average_view.setText(str(round(target_phase,3)))
+            self.ui.lineEdit_targetphase_average_view.setText("{:.3f}".format(round(target_phase,3)))
         except:
             return
     def _set_data_edited_signals(self):
