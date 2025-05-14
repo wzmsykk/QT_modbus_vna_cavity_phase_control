@@ -65,7 +65,7 @@ class MainDialog(QDialog):
         
         self.query_delay=1 ## in seconds
         
-        self.ui.tabWidget.setTabVisible(3, False) ##hide advanced tab
+        #self.ui.tabWidget.setTabVisible(3, False) ##hide advanced tab
         self._set_signal_slots()
         self._set_data_edited_signals()
     def setup_text(self):
@@ -119,6 +119,28 @@ class MainDialog(QDialog):
         ###AUTO MODE HELPER
         self.automode_helper_signal.connect(self.automode_helper_slot)
 
+        ###TEXT EDITED SIGNALS
+        self.ui.lineEdit_vnc_phase.textChanged.connect(self.update_vnc_phase_view)
+        self.ui.lineEdit_cav_phase.textChanged.connect(self.update_cav_phase_view)
+        self.ui.lineEdit_targetphase_average.textChanged.connect(self.update_target_phase_view)
+    def update_vnc_phase_view(self):
+        try:
+            vnc_phase=float(self.ui.lineEdit_vnc_phase.text())
+            self.ui.lineEdit_vnc_phase_view.setText(str(round(vnc_phase,3)))
+        except:
+            return
+    def update_cav_phase_view(self):
+        try:
+            cav_phase=float(self.ui.lineEdit_cav_phase.text())
+            self.ui.lineEdit_cav_phase_view.setText(str(round(cav_phase,3)))
+        except:
+            return
+    def update_target_phase_view(self):
+        try:
+            target_phase=float(self.ui.lineEdit_targetphase_average.text())
+            self.ui.lineEdit_targetphase_average_view.setText(str(round(target_phase,3)))
+        except:
+            return
     def _set_data_edited_signals(self):
         self.ui.lineEdit_cav_phase.textChanged.connect(self.ui_phase_edited)
         self.ui.lineEdit_currcavpos.textChanged.connect(self.ui_pos_edited)
@@ -313,11 +335,22 @@ class MainDialog(QDialog):
             return False
     def next_cavity(self):
         id=int(self.ui.spinBox_cavid.value())
+
         if not self.model.cavity_id_exists_in_data(id) or self.ui_data_dirty:
             QMessageBox.critical(None, "错误",
                                  f"请先保存当前腔数据")
             return
+        try:
+            if self.ui.lineEdit_relpos.text()==self.ui.lineEdit_currcavpos.text():
+                QMessageBox.critical(None, "错误",
+                                    f"请先移动电机到下个腔位置")
+                return
+        except:
+            QMessageBox.critical(None, "错误",
+                                    f"请检查设备是否连接 数据是否正确")
+            return
         if self.inst:
+            
             self.ui.lineEdit_currcavpos.setText(str(self.ui.lineEdit_relpos.text()))
         self.ui.spinBox_cavid.setValue(id+1)
         return
