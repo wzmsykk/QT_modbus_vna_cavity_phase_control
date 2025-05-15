@@ -192,7 +192,7 @@ class CavityPhaseModel(QStandardItemModel):
         return row
     def get_dict_by_cavity_id(self,cavity_id):
         if not self.cavity_id_exists_in_data(cavity_id):
-            return None
+            return {}
         dict=self.create_empty_dict()
         row=self.get_row_by_cavity_id(cavity_id)
         for i in range(len(row)):

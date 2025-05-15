@@ -147,14 +147,18 @@ class MainDialog(QDialog):
     def set_ui_data_clean(self):
         self.ui.lineEdit_cav_phase.setStyleSheet("")
         self.ui.lineEdit_currcavpos.setStyleSheet("")
+        self.ui.lineEdit_cav_phase_view.setStyleSheet("")
         self.ui_data_dirty=False
     def set_ui_data_dirty(self):
         dirty_style="color: rgb(255, 0, 0);"
         self.ui.lineEdit_cav_phase.setStyleSheet(dirty_style)
         self.ui.lineEdit_currcavpos.setStyleSheet(dirty_style)
+        self.ui.lineEdit_cav_phase_view.setStyleSheet(dirty_style)
         self.ui_data_dirty=True
     def ui_phase_edited(self):
-        self.ui.lineEdit_cav_phase.setStyleSheet("color: rgb(255, 0, 0);")
+        dirty_style="color: rgb(255, 0, 0);"
+        self.ui.lineEdit_cav_phase.setStyleSheet(dirty_style)
+        self.ui.lineEdit_cav_phase_view.setStyleSheet(dirty_style)
         self.ui_data_edited()
     def ui_pos_edited(self):
         self.ui.lineEdit_currcavpos.setStyleSheet("color: rgb(255, 0, 0);")
@@ -247,7 +251,7 @@ class MainDialog(QDialog):
             await asyncio.sleep(wait_time_post)
             time=datetime.datetime.now()
             self.update_phase_calc()
-            self._saveline_reduced(new=True)
+            self._saveline_reduced(cavid,new=True)
             self.model.update_cav_data_by_dict(cavid,{"腔相位":fresult})
             self.model.update_cav_data_by_dict(cavid,{"时间":str(time)})
             scanresults.append((cavid,fresult))
@@ -348,7 +352,20 @@ class MainDialog(QDialog):
         
         if self.inst:
             self.ui.lineEdit_currcavpos.setText(str(self.ui.lineEdit_relpos.text()))
-        self.ui.spinBox_cavid.setValue(id+1)
+        target_cavid=int(self.ui.spinBox_cavid.value())+1
+        self.model.set_current_cavity_id(target_cavid)
+        if not self.model.cavity_id_exists_in_data(target_cavid):
+            self.save_line(target_cavid)
+            self.set_ui_data_dirty()
+        try:
+           self.update_phase_calc()
+        except ValueError as err:
+            QMessageBox.critical(None, "错误", 
+                            err.args[0])
+            cavid=self.model.recover_cavity_id()
+            self.ui.spinBox_cavid.setValue(cavid)
+            return
+        self.ui.spinBox_cavid.setValue(target_cavid)
         return
     def previous_cavity(self):
         id=int(self.ui.spinBox_cavid.value())
@@ -376,7 +393,11 @@ class MainDialog(QDialog):
                 self.update_phase_calc()
             return
         else:
-            self.save_newline()
+            cavid=self.model.recover_cavity_id()
+            self.ui.spinBox_cavid.setValue(cavid)
+            return
+        ###### DONT CREATE NEW LINE FROM COMBOBOX ONLY FROM NEXT CAVITY BUTTON
+            self.save_line(cavid)
             self.set_ui_data_dirty()
         try:
            self.update_phase_calc()
@@ -618,19 +639,18 @@ class MainDialog(QDialog):
 
         self.set_ui_data_clean()####SET CLEAN
         pass
-    def save_newline(self):
+    def save_line(self,cavid):
         if not self.ui_check_input_phase_data_available():
             return
         try:
-            self._saveline_reduced(new=True)
+            self._saveline_reduced(cavid,new=True)
         except ValueError as err:
             print(err)
 
-    def _saveline_reduced(self,new=False):
+    def _saveline_reduced(self,cavid,new=False):
         ###save data with no calcs
         if not self.ui_check_input_phase_data_available():
             return
-        cavid=self.ui.spinBox_cavid.value()
         data=self.model.create_empty_dict()
         if new:
             time=datetime.datetime.now()
@@ -659,7 +679,7 @@ class MainDialog(QDialog):
             return
         cavid=self.ui.spinBox_cavid.value()
         try:
-            self._saveline_reduced(new=new)
+            self._saveline_reduced(cavid,new=new)
         except ValueError as err:
             QMessageBox.warning(None, "保存失败", 
                             "id:{} 请检查数据格式".format(cavid))
