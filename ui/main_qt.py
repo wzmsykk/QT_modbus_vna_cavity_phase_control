@@ -396,7 +396,7 @@ class MainDialog(QDialog):
             cavid=self.model.recover_cavity_id()
             self.ui.spinBox_cavid.setValue(cavid)
             return
-        ###### DONT CREATE NEW LINE FROM COMBOBOX ONLY FROM NEXT CAVITY BUTTON
+        ###### DONT CREATE NEW LINE FROM COMBOBOX, ONLY FROM NEXT CAVITY BUTTON
             self.save_line(cavid)
             self.set_ui_data_dirty()
         try:

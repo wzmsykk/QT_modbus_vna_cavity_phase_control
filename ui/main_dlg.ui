@@ -46,7 +46,7 @@
         <property name="font">
          <font>
           <family>黑体</family>
-          <pointsize>12</pointsize>
+          <pointsize>20</pointsize>
           <weight>50</weight>
           <bold>false</bold>
          </font>
@@ -61,7 +61,7 @@
         <property name="font">
          <font>
           <family>黑体</family>
-          <pointsize>20</pointsize>
+          <pointsize>30</pointsize>
           <weight>75</weight>
           <bold>true</bold>
          </font>
@@ -79,7 +79,7 @@
         <property name="font">
          <font>
           <family>黑体</family>
-          <pointsize>12</pointsize>
+          <pointsize>20</pointsize>
           <weight>50</weight>
           <bold>false</bold>
          </font>
@@ -94,7 +94,7 @@
         <property name="font">
          <font>
           <family>黑体</family>
-          <pointsize>20</pointsize>
+          <pointsize>30</pointsize>
           <weight>75</weight>
           <bold>true</bold>
          </font>
