@@ -3,7 +3,7 @@ import sys
 sys.path.append("imports")
 
 import asyncio
-from ui.main_qt import MainDialog
+from ui.main_qt import MainWindow
 from PyQt5 import QtCore
 from qasync import QEventLoop, QApplication
 
@@ -18,7 +18,7 @@ asyncio.set_event_loop(event_loop)
 app_close_event = asyncio.Event()
 app.aboutToQuit.connect(app_close_event.set)
 
-mainwindow = MainDialog()
+mainwindow = MainWindow()
 mainwindow.show()
 
 event_loop.create_task(mainwindow.start())

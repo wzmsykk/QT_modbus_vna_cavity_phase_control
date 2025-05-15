@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>829</width>
+    <width>714</width>
     <height>732</height>
    </rect>
   </property>
@@ -43,6 +43,12 @@
      <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
        <widget class="QLabel" name="label_13">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="font">
          <font>
           <family>黑体</family>
@@ -58,6 +64,18 @@
       </item>
       <item>
        <widget class="QLineEdit" name="lineEdit_vnc_phase_view">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>200</width>
+          <height>16777215</height>
+         </size>
+        </property>
         <property name="font">
          <font>
           <family>黑体</family>
@@ -72,10 +90,19 @@
         <property name="readOnly">
          <bool>true</bool>
         </property>
+        <property name="clearButtonEnabled">
+         <bool>false</bool>
+        </property>
        </widget>
       </item>
       <item>
        <widget class="QLabel" name="label_19">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="font">
          <font>
           <family>黑体</family>
@@ -91,6 +118,18 @@
       </item>
       <item>
        <widget class="QLineEdit" name="lineEdit_targetphase_average_view">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>200</width>
+          <height>16777215</height>
+         </size>
+        </property>
         <property name="font">
          <font>
           <family>黑体</family>
@@ -119,7 +158,7 @@
       </sizepolicy>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <property name="tabBarAutoHide">
       <bool>false</bool>
@@ -656,6 +695,7 @@
                   </property>
                   <property name="font">
                    <font>
+                    <family>黑体</family>
                     <pointsize>12</pointsize>
                     <weight>75</weight>
                     <bold>true</bold>

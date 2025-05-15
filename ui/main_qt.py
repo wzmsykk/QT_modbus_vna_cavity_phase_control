@@ -1,7 +1,7 @@
 import os
 import asyncio
 import datetime
-from PyQt5.QtWidgets import QDialog, QFileDialog, QMessageBox
+from PyQt5.QtWidgets import QDialog, QFileDialog, QMessageBox,QMainWindow
 from PyQt5.QtCore import pyqtSignal
 from qasync import asyncClose, asyncSlot
 from .main_dlg import Ui_Dialog
@@ -25,7 +25,7 @@ def is_file_locked(filepath):
     except IOError:
         return True
 
-class MainDialog(QDialog):
+class MainWindow(QDialog):
     automode_helper_signal=pyqtSignal(str)
     def __init__(self, parent=None):
 
@@ -411,6 +411,7 @@ class MainDialog(QDialog):
     def save_cavity_data_ui(self):
         if self.current_is_input_coupler():
             return
+        # if 
         self.saveline_ui(new=True)
         if self.auto_recalculates():
             self.update_phase_calc()
