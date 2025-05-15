@@ -184,7 +184,7 @@ class CavityPhaseModel(QStandardItemModel):
             return True
     def get_row_by_cavity_id(self,cavity_id):
         if not self.cavity_id_exists_in_data(cavity_id):
-            return None
+            return []
         rowidx=self._search_index_from_cavity_id(cavity_id)
         row=[]
         for i in range(len(self.columnname)):
@@ -294,7 +294,7 @@ class CavityPhaseModel(QStandardItemModel):
     def get_cavity_id_list(self):
         rowCount=self.rowCount()
         if rowCount==0:
-            return None
+            return []
         idlist=[]
         for i in range(rowCount):
             cid=int(self.item(i,self._cavity_id_column_index()).text())
@@ -303,7 +303,7 @@ class CavityPhaseModel(QStandardItemModel):
     def get_cavity_position_list(self):
         rowCount=self.rowCount()
         if rowCount==0:
-            return None
+            return []
         poslist=[]
         for i in range(rowCount):
             cid=float(self.item(i,self._cavity_position_column_index()).text())
@@ -407,7 +407,7 @@ class CavityPhaseModel(QStandardItemModel):
         return float(row[index].text())
     def equation(self):
         pass
-    def recalculate_phase_all(self,dirty_cavids:list[int]|int=None):
+    def recalculate_phase_all(self,dirty_cavids:list[int]|int=[]):
         list_to_process=self.data_dirty_list.copy()
         if len(list_to_process)==0:
             return

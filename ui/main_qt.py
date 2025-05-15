@@ -44,10 +44,10 @@ class MainDialog(QDialog):
         #self.message_box.finished.connect(self._message_box_results)
 
 
-        self.client: modbus.ModbusClient = None
-        self.rm:vnc.ResourceManager = None
-        self.inst:vnc.Resource = None
-        self.app:convertf.ConvertfApp = None
+        self.client: modbus.ModbusClient.ModbusBaseClient | None= None
+        self.rm:vnc.ResourceManager | None= None
+        self.inst:vnc.Resource | None= None
+        self.app:convertf.ConvertfApp | None= None
         
         #self.data = pd.DataFrame(columns=self.columnname)
         
@@ -340,17 +340,13 @@ class MainDialog(QDialog):
             QMessageBox.critical(None, "错误",
                                  f"请先保存当前腔数据")
             return
-        try:
-            if self.ui.lineEdit_relpos.text()==self.ui.lineEdit_currcavpos.text():
-                QMessageBox.critical(None, "错误",
-                                    f"请先移动电机到下个腔位置")
-                return
-        except:
+       
+        if float(self.ui.lineEdit_relpos.text())==float(self.ui.lineEdit_currcavpos.text()):
             QMessageBox.critical(None, "错误",
-                                    f"请检查设备是否连接 数据是否正确")
+                                f"请先移动电机到下个腔位置")
             return
+        
         if self.inst:
-            
             self.ui.lineEdit_currcavpos.setText(str(self.ui.lineEdit_relpos.text()))
         self.ui.spinBox_cavid.setValue(id+1)
         return
@@ -380,10 +376,6 @@ class MainDialog(QDialog):
                 self.update_phase_calc()
             return
         else:
-            cavid=self.model.recover_cavity_id()
-            self.ui.spinBox_cavid.setValue(cavid)
-            return
-        ###### DONT CREATE NEW LINE FROM COMBOBOX
             self.save_newline()
             self.set_ui_data_dirty()
         try:
@@ -865,7 +857,7 @@ class MainDialog(QDialog):
     async def start_modbus_client(self,restart=False,retry_times=3):
         if self.client is not None:
             if restart:
-                modbus.stop_async_simple_client(self.client)
+                await modbus.stop_async_simple_client(self.client)
             else:
                 return True
         for i in range(retry_times):
