@@ -436,15 +436,46 @@ class CavityPhaseModel(QStandardItemModel):
 
         self.data_dirty_list.clear()
         
+    
+    
+class CouplerCalculation():
+    def __init__(self):
+        self.f0:float=0
+        self.fl:float=0
+        self.fm:float=0
+        self.fc:float=0
+        self.c11,self.c12,self.c13=0,0,0
+        self.c21,self.c22,self.c23=0,0,0
     def calculate_coulper_corrected_phase(self,in_phase:float,phase_shift:float)->float:
         return in_phase+phase_shift
-    
-    def calculate_coupling_degree(self,fl,fm,fc,fl_phase_offset,fc_phase_offset):###IN MHz
+    @property
+    def fl_phase_offset(self):
+        return self.c11-self.c21
+    @property
+    def fc_phase_offset(self):
+        return self.c13-self.c23
+    @property
+    def fl_c(self):
+        return self.fl+self.phase_correction_offset
+    @property
+    def fm_c(self):
+        return self.fm+self.phase_correction_offset
+    @property
+    def fc_c(self):
+        return self.fc+self.phase_correction_offset
+    @property
+    def phase_correction_offset(self):
+        return self.f0-self.fc
+    def _calculate_coupling_degree(self,fl,fm,fc,fl_phase_offset,fc_phase_offset):###IN MHz
         cd=(tan(fl_phase_offset*pi/360)*tan(fc_phase_offset*pi/360)*(fl**2-fc**2))/((tan(fc_phase_offset*pi/360)*fl-tan(fl_phase_offset*pi/360)*fc)*(fl-fm)*2*tan(120*pi/360))
         return cd
-    def calculate_coupler_phase_error(self,fl,fm,fc,fl_phase_offset,fc_phase_offset):###IN MHz
+    def calculate_coupling_degree(self):
+        return self._calculate_coupling_degree(self.fl,self.fm,self.fc,self.fl_phase_offset,self.fc_phase_offset)
+    def _calculate_coupler_phase_error(self,fl,fm,fc,fl_phase_offset,fc_phase_offset):###IN MHz
         err=(fl*fc*(tan(fc_phase_offset*pi/360)*fc-tan(fl_phase_offset*pi/360)*fl)/(fl*tan(fc_phase_offset*pi/360)-fc*tan(fl_phase_offset*pi/360)))**0.5-fm
         return err
+    def calculate_coupler_phase_error(self):
+        return self._calculate_coupler_phase_error(self.fl,self.fm,self.fc,self.fl_phase_offset,self.fc_phase_offset)
 # if __name__ == '__main__':
 #     application = QtGui.QApplication(sys.argv)
 #     view = QtGui.QTableView()

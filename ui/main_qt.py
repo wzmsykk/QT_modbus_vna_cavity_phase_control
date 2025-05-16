@@ -55,6 +55,9 @@ class MainWindow(QDialog):
         self.model =dataprocess.CavityPhaseModel()
         self.model.setColumnCount(len(self.model.columnname))
         self.model.setHorizontalHeaderLabels(self.model.columnname)
+        self.coupler_calc_input=dataprocess.CouplerCalculation()
+        self.coupler_calc_output=dataprocess.CouplerCalculation()
+        self.coupler_calc=self.coupler_calc_input
         self.ui.tableView_data.setModel(self.model)
 
         self.columnname=["时间","腔ID","腔位置","输入相位","腔相位","单腔相移","目标相位-累计相移","目标相位-单腔相移","目标相位","单腔相移误差","累计相移误差","校准频率(MHz)","湿度(%)","气压(Pa)","腔温(℃)","气温(℃)","真空频率(MHz)","工作温度(℃)"]
@@ -115,7 +118,7 @@ class MainWindow(QDialog):
 
         ###AUTO MODE
         self.ui.checkBox_automode.clicked.connect(self.automode_clicked)
-        self.ui.pushButton_autophasescan.clicked.connect(self.auto_phase_scan)
+        self.ui.pushButton_autophasescan.clicked.connect(self.ui_auto_phase_scan)
         ###AUTO MODE HELPER
         self.automode_helper_signal.connect(self.automode_helper_slot)
 
@@ -136,59 +139,70 @@ class MainWindow(QDialog):
         self.ui.lineEdit_c22.textEdited.connect(self.update_coupler_calc_step2)
         self.ui.lineEdit_c23.textEdited.connect(self.update_coupler_calc_step2)
 
+        self.ui.radioButton_input_coupler.clicked.connect(self.update_coupler_calc_step0)
+        self.ui.radioButton_output_coupler.clicked.connect(self.update_coupler_calc_step0)
+    def update_coupler_calc_step0(self):
+        if self.ui.radioButton_input_coupler.isChecked():
+            self.coupler_calc=self.coupler_calc_input
+        elif self.ui.radioButton_output_coupler.isChecked():
+            self.coupler_calc=self.coupler_calc_output
+        self.ui.lineEdit_couper_calc_f0_corrected.setText(str(self.coupler_calc.f0))
+        self.ui.lineEdit_couper_calc_f2pi_3.setText(str(self.coupler_calc.fc))
+        self.ui.lineEdit_couper_calc_fmean.setText(str(self.coupler_calc.fm))
+        self.ui.lineEdit_couper_calc_fpi_2.setText(str(self.coupler_calc.fl))
+        self.ui.lineEdit_c11.setText(str(self.coupler_calc.c11))
+        self.ui.lineEdit_c12.setText(str(self.coupler_calc.c12))
+        self.ui.lineEdit_c13.setText(str(self.coupler_calc.c13))
+        self.ui.lineEdit_c21.setText(str(self.coupler_calc.c21))
+        self.ui.lineEdit_c22.setText(str(self.coupler_calc.c22))
+        self.ui.lineEdit_c23.setText(str(self.coupler_calc.c23))
+        self.update_coupler_calc_step1()
     def update_coupler_calc_step1(self):
         try:
             f0=float(self.ui.lineEdit_couper_calc_f0_corrected.text())
             fc=float(self.ui.lineEdit_couper_calc_f2pi_3.text())
             fm=float(self.ui.lineEdit_couper_calc_fmean.text())
             fl=float(self.ui.lineEdit_couper_calc_fpi_2.text())
+            self.coupler_calc.f0=f0
+            self.coupler_calc.fc=fc
+            self.coupler_calc.fm=fm
+            self.coupler_calc.fl=fl
             
-            phase_offset=f0-fc
-            fc_c=fc+phase_offset
-            fm_c=fm+phase_offset
-            fl_c=fl+phase_offset
-            
-            self.ui.lineEdit_couper_calc_fpi_2_corrected.setText(str(fl_c))
-            self.ui.lineEdit_couper_calc_fmean_corrected.setText(str(fm_c))
-            self.ui.lineEdit_couper_calc_f2pi_3_corrected.setText(str(fc_c))
+            self.ui.lineEdit_couper_calc_fpi_2_corrected.setText(str(self.coupler_calc.fc_c))
+            self.ui.lineEdit_couper_calc_fmean_corrected.setText(str(self.coupler_calc.fm_c))
+            self.ui.lineEdit_couper_calc_f2pi_3_corrected.setText(str(self.coupler_calc.fc_c))
         except:
             return
         self.update_coupler_calc_step2()
     def update_coupler_calc_step2(self):
         try:
-            c11=float(self.ui.lineEdit_c11.text())
-            c12=float(self.ui.lineEdit_c12.text())
-            c13=float(self.ui.lineEdit_c13.text())
-            c21=float(self.ui.lineEdit_c21.text())
-            c22=float(self.ui.lineEdit_c22.text())
-            c23=float(self.ui.lineEdit_c23.text())
-            c31=c11-c21
-            c32=c12-c22
-            c33=c13-c23
+            self.coupler_calc.c11=float(self.ui.lineEdit_c11.text())
+            self.coupler_calc.c12=float(self.ui.lineEdit_c12.text())
+            self.coupler_calc.c13=float(self.ui.lineEdit_c13.text())
+            self.coupler_calc.c21=float(self.ui.lineEdit_c21.text())
+            self.coupler_calc.c22=float(self.ui.lineEdit_c22.text())
+            self.coupler_calc.c23=float(self.ui.lineEdit_c23.text())
+            c31=self.coupler_calc.c11-self.coupler_calc.c21
+            c32=self.coupler_calc.c12-self.coupler_calc.c22
+            c33=self.coupler_calc.c13-self.coupler_calc.c23
             self.ui.lineEdit_c31.setText(str(c31))
             self.ui.lineEdit_c32.setText(str(c32))
             self.ui.lineEdit_c33.setText(str(c33))
-            target_phase=c13-self.model.designed_shift_per_cell
+            target_phase=self.coupler_calc.c13-self.model.designed_shift_per_cell
             if target_phase>180:
                 target_phase=target_phase-360
             elif target_phase<-180:
                 target_phase=target_phase+360
-            self.ui.lineEdit_coupler_phase_target.setText(str(target_phase))
+            self.ui.lineEdit_coupler_phase_target.setText("{:.3f}".format(round(target_phase,3)))
         except:
             return
         self.update_coupler_calc_step3()
     def update_coupler_calc_step3(self):
         try:
-            fl_c=float(self.ui.lineEdit_couper_calc_fpi_2_corrected.text())
-            fm_c=float(self.ui.lineEdit_couper_calc_fmean_corrected.text())
-            fc_c=float(self.ui.lineEdit_couper_calc_f2pi_3_corrected.text())
-            fl_phase_offset=float(self.ui.lineEdit_c31.text())
-            fc_phase_offset=float(self.ui.lineEdit_c33.text())
-           
-            cv=self.model.calculate_coupling_degree(fl_c,fm_c,fc_c,fl_phase_offset,fc_phase_offset)
-            self.ui.lineEdit_coupling_value.setText("{:.3f}".format(round(cv,3)))
-            err=self.model.calculate_coupler_phase_error(fl_c,fm_c,fc_c,fl_phase_offset,fc_phase_offset)
-            self.ui.lineEdit_coupler_phase_error.setText("{:.3f}".format(round(err,3)))
+            cv=self.coupler_calc.calculate_coupling_degree()
+            self.ui.lineEdit_coupling_value.setText(str(cv))
+            err=self.coupler_calc.calculate_coupler_phase_error()
+            self.ui.lineEdit_coupler_phase_error.setText(str(err))
         except:
             return
     def update_vnc_phase_view(self):
@@ -268,7 +282,14 @@ class MainWindow(QDialog):
             self.enable_data_ui()
             self.ui.pushButton_autophasescan.setEnabled(False)
     @asyncSlot()
-    async def auto_phase_scan(self):
+    async def ui_auto_phase_scan(self):
+        #####DISABLE BUTTON
+        self.ui.pushButton_autophasescan.setEnabled(False)
+        await self._auto_phase_scan()
+        #####ENABLE BUTTON
+        self.ui.pushButton_autophasescan.setEnabled(True)
+    @asyncSlot()
+    async def _auto_phase_scan(self):
         #####check status
         unsafe_run=True
         if not self.is_vnc_connected():
