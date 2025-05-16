@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QDialog, QFileDialog, QMessageBox,QMainWindow
 from PyQt5.QtCore import pyqtSignal
 from qasync import asyncClose, asyncSlot
 from .main_dlg import Ui_Dialog
+from .auto_phase_scan_qt import AutoPhaseScanDialog
 import control.modbus as modbus
 from pymodbus.exceptions import ConnectionException,ModbusIOException
 import control.vnc as vnc
@@ -42,7 +43,9 @@ class MainWindow(QDialog):
         self.message_box.setIcon(QMessageBox.Icon.Warning)
         self.message_box.setStandardButtons(QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
         #self.message_box.finished.connect(self._message_box_results)
-
+        #########INIT AUTO PHASE SCAN DIALOG
+        self.auto_scan_dlg = AutoPhaseScanDialog()
+        self.auto_scan_dlg.setModal(True)
 
         self.client: modbus.ModbusClient.ModbusBaseClient | None= None
         self.rm:vnc.ResourceManager | None= None
@@ -269,6 +272,11 @@ class MainWindow(QDialog):
         self.update_ui_from_dict(marked_for_update_dict)
 
     def automode_clicked(self):
+        if not self.ui.checkBox_lockinputphase.isChecked():
+            QMessageBox.warning(None, "警告", 
+                            f"未设置初始相位，请设置初始相位后继续。")
+            self.ui.checkBox_automode.setChecked(False)
+            return
         if self.ui.checkBox_automode.isChecked():
             self.disable_motor_buttons()
             self.disable_vnc_buttons()
@@ -285,11 +293,15 @@ class MainWindow(QDialog):
     async def ui_auto_phase_scan(self):
         #####DISABLE BUTTON
         self.ui.pushButton_autophasescan.setEnabled(False)
-        await self._auto_phase_scan()
+        result=self.auto_scan_dlg.exec_()
+        if result==QDialog.Accepted:
+            speed=self.auto_scan_dlg.vec
+            waitime=self.auto_scan_dlg.waittime
+            await self._auto_phase_scan(speed,waitime)
         #####ENABLE BUTTON
         self.ui.pushButton_autophasescan.setEnabled(True)
     @asyncSlot()
-    async def _auto_phase_scan(self):
+    async def _auto_phase_scan(self,speed:float=10.0,waittime:float=5.0):
         #####check status
         unsafe_run=True
         if not self.is_vnc_connected():
@@ -312,8 +324,8 @@ class MainWindow(QDialog):
         #####DISABLE AUTO CALC
         self.ui.checkBox_auto_calc.setChecked(False)
         #####START SCAN
-        vel=float(self.ui.lineEdit_relvec.text()) ##get velocity
-        wait_time_pre=4
+        vel=speed ##get velocity
+        wait_time_pre=waittime
         wait_time_post=1
         scanresults=[]
         for i in range(len(cavids)):
