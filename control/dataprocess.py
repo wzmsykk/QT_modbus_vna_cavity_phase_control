@@ -260,7 +260,19 @@ class CavityPhaseModel(QStandardItemModel):
                 target-=self._phase_round_const
         return target
     def calc_target_phase_final(self,cavity_id):
-        return (self.calc_target_phase_single_cell(cavity_id)+self.calc_target_phase_sum(cavity_id))/2
+        d1=self.calc_target_phase_single_cell(cavity_id)
+        d2=self.calc_target_phase_sum(cavity_id)
+        delta=d2-d1
+        if delta<-self._phase_round_const/2:
+            delta+=self._phase_round_const
+        elif delta>self._phase_round_const/2:
+            delta-=self._phase_round_const
+        dmid=d1+delta/2
+        if dmid<-self._phase_round_const/2:
+            dmid+=self._phase_round_const
+        elif dmid>self._phase_round_const/2:
+            dmid-=self._phase_round_const
+        return dmid
     def save_csv(self,file_path:str):
         with open(file_path, 'w', newline='', encoding='utf-8-sig') as csvfile:
                 writer = csv.writer(csvfile)
