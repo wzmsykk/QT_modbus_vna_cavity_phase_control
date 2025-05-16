@@ -2,7 +2,7 @@ import os
 import asyncio
 import datetime
 from PyQt5.QtWidgets import QDialog, QFileDialog, QMessageBox,QDesktopWidget
-from PyQt5.QtCore import pyqtSignal,Qt
+from PyQt5.QtCore import pyqtSignal,Qt,QEvent
 from qasync import asyncClose, asyncSlot
 from .main_dlg import Ui_Dialog
 from .auto_phase_scan_qt import AutoPhaseScanDialog
@@ -90,23 +90,28 @@ class MainWindow(QDialog):
         self._set_data_edited_signals()
         
     def set_location_in_screen(self):
+        left_margin=5
+        top_margin=5
+        spacing=10
         ####SET PHASE VIEW DIALOG ON TOP LEFT
         ag = QDesktopWidget().availableGeometry()
         sg = QDesktopWidget().screenGeometry()
         widget_phase= self.phase_view_dlg.geometry()
-        x = 0
-        y=0
+        x = left_margin
+        y= top_margin
         self.phase_view_dlg.move(x, y)
-        ####SET MOTOR CONTROL DIALOG ON TOP RIGHT
-        widget_motor= self.motor_control_dlg.geometry()
-        x = ag.width() - widget_motor.width()
-        y = widget_phase.height()+10
-        self.motor_control_dlg.move(x, y)
         ####SET MAIN WINDOW ON BOTTOM LEFT
         widget_main= self.geometry()
-        x= 0
+        x= left_margin
         y= widget_phase.height() +50
         self.move(x, y)
+
+        ####SET MOTOR CONTROL DIALOG ON TOP RIGHT
+        widget_motor= self.motor_control_dlg.geometry()
+        x = self.x() + widget_main.width() +spacing
+        y =self.y()
+        self.motor_control_dlg.move(x, y)
+        
         # widget = self.geometry()
         # x = ag.width() - widget.width()
         # y = 2 * ag.height() - sg.height() - widget.height()
@@ -189,7 +194,8 @@ class MainWindow(QDialog):
         self.ui_phase.lineEdit_vnc_phase_view.setFont(font)
         self.ui_phase.lineEdit_targetphase_average_view.setFont(font)
         #self.phase_view_dlg.setFixedSize(self.phase_view_dlg.ui.horizontalLayout.sizeHint())
-        self.set_location_in_screen()
+        # self.set_location_in_screen()
+        
     def update_coupler_calc_step0(self):
         if self.ui.radioButton_input_coupler.isChecked():
             self.coupler_calc=self.coupler_calc_input
@@ -931,6 +937,14 @@ class MainWindow(QDialog):
         self.inst = None
         self.app = None
         event.accept()
+    def changeEvent(self, event):
+        if event.type() == QEvent.WindowStateChange:
+            if self.windowState() & Qt.WindowMinimized:
+                self.phase_view_dlg.showMinimized()
+                self.motor_control_dlg.showMinimized()
+            else:
+                self.phase_view_dlg.showNormal()
+                self.motor_control_dlg.showNormal()
     async def query_modbus_first(self):
         if self.client is None:
             print("Modbus server failed to connect.")
