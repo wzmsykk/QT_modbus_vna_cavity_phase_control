@@ -6,7 +6,7 @@ from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtCore import pyqtSignal
 import pandas as pd
 import csv
-
+from math import tan, pi
 class CavityPhaseModel(QStandardItemModel):
     phase_data_changed_signal=pyqtSignal(int)###int:cavity_id
     data_changed_signal=pyqtSignal(int,list)###int:cavity_id list:changed_column_names
@@ -435,6 +435,16 @@ class CavityPhaseModel(QStandardItemModel):
             self.set_phase_error_sum(cavid,phase_error_sum)
 
         self.data_dirty_list.clear()
+        
+    def calculate_coulper_corrected_phase(self,in_phase:float,phase_shift:float)->float:
+        return in_phase+phase_shift
+    
+    def calculate_coupling_degree(self,fl,fm,fc,fl_phase_offset,fc_phase_offset):###IN MHz
+        cd=(tan(fl_phase_offset*pi/360)*tan(fc_phase_offset*pi/360)*(fl**2-fc**2))/((tan(fc_phase_offset*pi/360)*fl-tan(fl_phase_offset*pi/360)*fc)*(fl-fm)*2*tan(120*pi/360))
+        return cd
+    def calculate_coupler_phase_error(self,fl,fm,fc,fl_phase_offset,fc_phase_offset):###IN MHz
+        err=(fl*fc*(tan(fc_phase_offset*pi/360)*fc-tan(fl_phase_offset*pi/360)*fl)/(fl*tan(fc_phase_offset*pi/360)-fc*tan(fl_phase_offset*pi/360)))**0.5-fm
+        return err
 # if __name__ == '__main__':
 #     application = QtGui.QApplication(sys.argv)
 #     view = QtGui.QTableView()
@@ -443,3 +453,5 @@ class CavityPhaseModel(QStandardItemModel):
 
 #     view.show()
 #     sys.exit(application.exec_())
+
+

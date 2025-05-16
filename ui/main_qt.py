@@ -119,10 +119,78 @@ class MainWindow(QDialog):
         ###AUTO MODE HELPER
         self.automode_helper_signal.connect(self.automode_helper_slot)
 
-        ###TEXT EDITED SIGNALS
+        ###TEXT CHANGED SIGNALS
         self.ui.lineEdit_vnc_phase.textChanged.connect(self.update_vnc_phase_view)
         self.ui.lineEdit_cav_phase.textChanged.connect(self.update_cav_phase_view)
         self.ui.lineEdit_targetphase_average.textChanged.connect(self.update_target_phase_view)
+        
+        ###COUPLER PHASE CALCULATION
+        self.ui.lineEdit_couper_calc_f0_corrected.textEdited.connect(self.update_coupler_calc_step1)
+        self.ui.lineEdit_couper_calc_f2pi_3.textEdited.connect(self.update_coupler_calc_step1)
+        self.ui.lineEdit_couper_calc_fmean.textEdited.connect(self.update_coupler_calc_step1)
+        self.ui.lineEdit_couper_calc_fpi_2.textEdited.connect(self.update_coupler_calc_step1)
+        self.ui.lineEdit_c11.textEdited.connect(self.update_coupler_calc_step2)
+        self.ui.lineEdit_c12.textEdited.connect(self.update_coupler_calc_step2)
+        self.ui.lineEdit_c13.textEdited.connect(self.update_coupler_calc_step2)
+        self.ui.lineEdit_c21.textEdited.connect(self.update_coupler_calc_step2)
+        self.ui.lineEdit_c22.textEdited.connect(self.update_coupler_calc_step2)
+        self.ui.lineEdit_c23.textEdited.connect(self.update_coupler_calc_step2)
+
+    def update_coupler_calc_step1(self):
+        try:
+            f0=float(self.ui.lineEdit_couper_calc_f0_corrected.text())
+            fc=float(self.ui.lineEdit_couper_calc_f2pi_3.text())
+            fm=float(self.ui.lineEdit_couper_calc_fmean.text())
+            fl=float(self.ui.lineEdit_couper_calc_fpi_2.text())
+            
+            phase_offset=f0-fc
+            fc_c=fc+phase_offset
+            fm_c=fm+phase_offset
+            fl_c=fl+phase_offset
+            
+            self.ui.lineEdit_couper_calc_fpi_2_corrected.setText(str(fl_c))
+            self.ui.lineEdit_couper_calc_fmean_corrected.setText(str(fm_c))
+            self.ui.lineEdit_couper_calc_f2pi_3_corrected.setText(str(fc_c))
+        except:
+            return
+        self.update_coupler_calc_step2()
+    def update_coupler_calc_step2(self):
+        try:
+            c11=float(self.ui.lineEdit_c11.text())
+            c12=float(self.ui.lineEdit_c12.text())
+            c13=float(self.ui.lineEdit_c13.text())
+            c21=float(self.ui.lineEdit_c21.text())
+            c22=float(self.ui.lineEdit_c22.text())
+            c23=float(self.ui.lineEdit_c23.text())
+            c31=c11-c21
+            c32=c12-c22
+            c33=c13-c23
+            self.ui.lineEdit_c31.setText(str(c31))
+            self.ui.lineEdit_c32.setText(str(c32))
+            self.ui.lineEdit_c33.setText(str(c33))
+            target_phase=c13-self.model.designed_shift_per_cell
+            if target_phase>180:
+                target_phase=target_phase-360
+            elif target_phase<-180:
+                target_phase=target_phase+360
+            self.ui.lineEdit_coupler_phase_target.setText(str(target_phase))
+        except:
+            return
+        self.update_coupler_calc_step3()
+    def update_coupler_calc_step3(self):
+        try:
+            fl_c=float(self.ui.lineEdit_couper_calc_fpi_2_corrected.text())
+            fm_c=float(self.ui.lineEdit_couper_calc_fmean_corrected.text())
+            fc_c=float(self.ui.lineEdit_couper_calc_f2pi_3_corrected.text())
+            fl_phase_offset=float(self.ui.lineEdit_c31.text())
+            fc_phase_offset=float(self.ui.lineEdit_c33.text())
+           
+            cv=self.model.calculate_coupling_degree(fl_c,fm_c,fc_c,fl_phase_offset,fc_phase_offset)
+            self.ui.lineEdit_coupling_value.setText("{:.3f}".format(round(cv,3)))
+            err=self.model.calculate_coupler_phase_error(fl_c,fm_c,fc_c,fl_phase_offset,fc_phase_offset)
+            self.ui.lineEdit_coupler_phase_error.setText("{:.3f}".format(round(err,3)))
+        except:
+            return
     def update_vnc_phase_view(self):
         try:
             vnc_phase=float(self.ui.lineEdit_vnc_phase.text())
@@ -142,8 +210,8 @@ class MainWindow(QDialog):
         except:
             return
     def _set_data_edited_signals(self):
-        self.ui.lineEdit_cav_phase.textChanged.connect(self.ui_phase_edited)
-        self.ui.lineEdit_currcavpos.textChanged.connect(self.ui_pos_edited)
+        self.ui.lineEdit_cav_phase.textEdited.connect(self.ui_phase_edited)
+        self.ui.lineEdit_currcavpos.textEdited.connect(self.ui_pos_edited)
     def set_ui_data_clean(self):
         self.ui.lineEdit_cav_phase.setStyleSheet("")
         self.ui.lineEdit_currcavpos.setStyleSheet("")
