@@ -88,7 +88,7 @@ class MainWindow(QDialog):
         self.ui.tabWidget.setTabVisible(3, False) ##hide advanced tab
         self._set_signal_slots()
         self._set_data_edited_signals()
-        
+        self.asyncio_close_event=asyncio.Event()
     def set_location_in_screen(self):
         left_margin=5
         top_margin=5
@@ -924,9 +924,12 @@ class MainWindow(QDialog):
     @asyncClose
     async def closeEvent(self, event):  # noqa:N802
         print("Main dialog close event")
+        self.asyncio_close_event.set()
+        event_loop=asyncio.get_event_loop()
+
         if self.client:
-            await modbus.stop_PC_control(self.client)
-            await modbus.stop_async_simple_client(self.client)
+            task1=event_loop.create_task(modbus.stop_PC_control(self.client))
+            task2=event_loop.create_task(modbus.stop_async_simple_client(self.client))
         if self.rm and self.inst:
             vnc.close_visa_client(self.rm,self.inst)
         self.phase_view_dlg.close()
@@ -936,6 +939,7 @@ class MainWindow(QDialog):
         self.rm = None
         self.inst = None
         self.app = None
+
         event.accept()
     def changeEvent(self, event):
         if event.type() == QEvent.WindowStateChange:
@@ -1018,6 +1022,10 @@ class MainWindow(QDialog):
             else:
                 return True
         for i in range(retry_times):
+            if self.asyncio_close_event.is_set():
+
+                self.rm, self.inst=None,None
+                return False
             try:
                 self.rm, self.inst = vnc.create_visa_client()
                 vnc.set_meas_mode(self.inst)
@@ -1045,6 +1053,9 @@ class MainWindow(QDialog):
             else:
                 return True
         for i in range(retry_times):
+            if self.asyncio_close_event.is_set():
+                self.client = None
+                return False
             try:
                 self.client = await modbus.start_async_simple_client("192.168.1.100",502)
                 await modbus.start_PC_control(self.client)
