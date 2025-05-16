@@ -105,7 +105,7 @@ class MainWindow(QDialog):
         ####SET MAIN WINDOW ON BOTTOM LEFT
         widget_main= self.geometry()
         x= 0
-        y= widget_phase.height() +100
+        y= widget_phase.height() +50
         self.move(x, y)
         # widget = self.geometry()
         # x = ag.width() - widget.width()
@@ -141,6 +141,7 @@ class MainWindow(QDialog):
         self.ui.spinBox_cavid.valueChanged.connect(self.ui_update_cavity_id)
         self.ui.pushButton_show_phase_window.clicked.connect(self.phase_view_dlg.show)
         self.ui.pushButton_show_motor_control.clicked.connect(self.motor_control_dlg.show)
+        self.ui.spinBox_phase_dialog_fontsize.valueChanged.connect(self.change_phase_dialog_fontsize)
         ##### AUTO CALC
         self.ui.checkBox_auto_calc.clicked.connect(self.ui_set_auto_recalc)
         #self.model.data_changed_signal.connect(self.sync_ui_from_model)
@@ -182,6 +183,13 @@ class MainWindow(QDialog):
 
         self.ui.radioButton_input_coupler.clicked.connect(self.update_coupler_calc_step0)
         self.ui.radioButton_output_coupler.clicked.connect(self.update_coupler_calc_step0)
+    def change_phase_dialog_fontsize(self):
+        font=self.ui_phase.lineEdit_vnc_phase_view.font()
+        font.setPointSize(self.ui.spinBox_phase_dialog_fontsize.value())
+        self.ui_phase.lineEdit_vnc_phase_view.setFont(font)
+        self.ui_phase.lineEdit_targetphase_average_view.setFont(font)
+        #self.phase_view_dlg.setFixedSize(self.phase_view_dlg.ui.horizontalLayout.sizeHint())
+        self.set_location_in_screen()
     def update_coupler_calc_step0(self):
         if self.ui.radioButton_input_coupler.isChecked():
             self.coupler_calc=self.coupler_calc_input
