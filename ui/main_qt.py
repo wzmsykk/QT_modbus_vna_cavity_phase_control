@@ -1,11 +1,13 @@
 import os
 import asyncio
 import datetime
-from PyQt5.QtWidgets import QDialog, QFileDialog, QMessageBox,QMainWindow
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtWidgets import QDialog, QFileDialog, QMessageBox,QDesktopWidget
+from PyQt5.QtCore import pyqtSignal,Qt
 from qasync import asyncClose, asyncSlot
 from .main_dlg import Ui_Dialog
 from .auto_phase_scan_qt import AutoPhaseScanDialog
+from .phase_view_qt import PhaseViewDialog
+from .motor_control_qt import MotorControlDialog
 import control.modbus as modbus
 from pymodbus.exceptions import ConnectionException,ModbusIOException
 import control.vnc as vnc
@@ -35,7 +37,7 @@ class MainWindow(QDialog):
         self.ui = Ui_Dialog()
 
         self.ui.setupUi(self)
-        
+        self.setWindowFlags(self.windowFlags()	| Qt.WindowMinimizeButtonHint| Qt.WindowMaximizeButtonHint)
         ########INIT ASYNC MSGBOX
         self.message_box = QMessageBox()
         self.message_box.setText("This is a warning message")
@@ -46,6 +48,18 @@ class MainWindow(QDialog):
         #########INIT AUTO PHASE SCAN DIALOG
         self.auto_scan_dlg = AutoPhaseScanDialog()
         self.auto_scan_dlg.setModal(True)
+        #########INIT PHASE VIEW DIALOG
+        self.phase_view_dlg = PhaseViewDialog()
+        self.ui_phase=self.phase_view_dlg.ui
+        
+        #########INIT MOTOR CONTROL DIALOG
+        self.motor_control_dlg = MotorControlDialog()
+        self.ui_motor=self.motor_control_dlg.ui
+
+        #########Show DIALOGS
+        self.set_location_in_screen()
+        self.phase_view_dlg.show()
+        self.motor_control_dlg.show()
 
         self.client: modbus.ModbusClient.ModbusBaseClient | None= None
         self.rm:vnc.ResourceManager | None= None
@@ -74,6 +88,29 @@ class MainWindow(QDialog):
         self.ui.tabWidget.setTabVisible(3, False) ##hide advanced tab
         self._set_signal_slots()
         self._set_data_edited_signals()
+        
+    def set_location_in_screen(self):
+        ####SET PHASE VIEW DIALOG ON TOP LEFT
+        ag = QDesktopWidget().availableGeometry()
+        sg = QDesktopWidget().screenGeometry()
+        widget_phase= self.phase_view_dlg.geometry()
+        x = 0
+        y=0
+        self.phase_view_dlg.move(x, y)
+        ####SET MOTOR CONTROL DIALOG ON TOP RIGHT
+        widget_motor= self.motor_control_dlg.geometry()
+        x = ag.width() - widget_motor.width()
+        y = widget_phase.height()+10
+        self.motor_control_dlg.move(x, y)
+        ####SET MAIN WINDOW ON BOTTOM LEFT
+        widget_main= self.geometry()
+        x= 0
+        y= widget_phase.height() +100
+        self.move(x, y)
+        # widget = self.geometry()
+        # x = ag.width() - widget.width()
+        # y = 2 * ag.height() - sg.height() - widget.height()
+        # self.move(x, y)
     def setup_text(self):
         self.ui.lineEdit_max_single_cell_error_abs.setText(str(self.model.max_single_cell_phase_error_abs))
         self.ui.lineEdit_max_sum_error_abs.setText(str(self.model.max_sum_phase_error_abs))
@@ -87,14 +124,14 @@ class MainWindow(QDialog):
         # self.close()
 
     def _set_signal_slots(self):
-        self.ui.pushButton_setpos.clicked.connect(self.setpos_ui)
+        self.ui_motor.pushButton_setpos.clicked.connect(self.setpos_ui)
         self.ui.pushButton_movetocavpos.clicked.connect(self.setpos2cavpos)
-        self.ui.pushButton_resetpos.clicked.connect(self.resetpos)
+        self.ui_motor.pushButton_resetpos.clicked.connect(self.resetpos)
         self.ui.pushButton_savecurr.clicked.connect(self.save_cavity_data_ui)
         self.ui.pushButton_deldata.clicked.connect(self.delete_last_line)
         self.ui.pushButton_export.clicked.connect(self.save_csv_ui)
         self.ui.pushButton_import.clicked.connect(self.read_csv_ui)
-        self.ui.pushButton_addmov.clicked.connect(self.addmov)
+        self.ui_motor.pushButton_addmov.clicked.connect(self.addmov)
         self.ui.pushButton_freqcor.clicked.connect(self.freqcor)
         self.ui.radioButton_air.clicked.connect(self.set_airtype)
         self.ui.radioButton_nitro.clicked.connect(self.set_airtype)
@@ -102,7 +139,8 @@ class MainWindow(QDialog):
         self.ui.pushButton_setinputphase.clicked.connect(self.set_current_vnc_phase_as_inputphase)
         self.ui.checkBox_lockinputphase.clicked.connect(self.lock_inputphase)
         self.ui.spinBox_cavid.valueChanged.connect(self.ui_update_cavity_id)
-
+        self.ui.pushButton_show_phase_window.clicked.connect(self.phase_view_dlg.show)
+        self.ui.pushButton_show_motor_control.clicked.connect(self.motor_control_dlg.show)
         ##### AUTO CALC
         self.ui.checkBox_auto_calc.clicked.connect(self.ui_set_auto_recalc)
         #self.model.data_changed_signal.connect(self.sync_ui_from_model)
@@ -120,8 +158,8 @@ class MainWindow(QDialog):
         self.ui.pushButton_reconnectVNC.clicked.connect(self.start_vnc_client_button)
 
         ###AUTO MODE
-        self.ui.checkBox_automode.clicked.connect(self.automode_clicked)
-        self.ui.pushButton_autophasescan.clicked.connect(self.ui_auto_phase_scan)
+        self.ui_motor.checkBox_automode.clicked.connect(self.automode_clicked)
+        self.ui_motor.pushButton_autophasescan.clicked.connect(self.ui_auto_phase_scan)
         ###AUTO MODE HELPER
         self.automode_helper_signal.connect(self.automode_helper_slot)
 
@@ -211,7 +249,7 @@ class MainWindow(QDialog):
     def update_vnc_phase_view(self):
         try:
             vnc_phase=float(self.ui.lineEdit_vnc_phase.text())
-            self.ui.lineEdit_vnc_phase_view.setText("{:.3f}".format(round(vnc_phase,3)))
+            self.ui_phase.lineEdit_vnc_phase_view.setText("{:.3f}".format(round(vnc_phase,3)))
         except:
             return
     def update_cav_phase_view(self):
@@ -223,7 +261,7 @@ class MainWindow(QDialog):
     def update_target_phase_view(self):
         try:
             target_phase=float(self.ui.lineEdit_targetphase_average.text())
-            self.ui.lineEdit_targetphase_average_view.setText("{:.3f}".format(round(target_phase,3)))
+            self.ui_phase.lineEdit_targetphase_average_view.setText("{:.3f}".format(round(target_phase,3)))
         except:
             return
     def _set_data_edited_signals(self):
@@ -275,24 +313,24 @@ class MainWindow(QDialog):
         if not self.ui.checkBox_lockinputphase.isChecked():
             QMessageBox.warning(None, "警告", 
                             f"未设置初始相位，请设置初始相位后继续。")
-            self.ui.checkBox_automode.setChecked(False)
+            self.ui_motor.checkBox_automode.setChecked(False)
             return
-        if self.ui.checkBox_automode.isChecked():
+        if self.ui_motor.checkBox_automode.isChecked():
             self.disable_motor_buttons()
             self.disable_vnc_buttons()
             self.disable_data_ui()
-            self.ui.pushButton_autophasescan.setEnabled(True)
+            self.ui_motor.pushButton_autophasescan.setEnabled(True)
             QMessageBox.warning(None, "警告", 
                             f"自动模式会覆盖之前保存的相位数据，请先确认数据已经保存。")
         else:
             self.enable_motor_buttons()
             self.enable_vnc_buttons()
             self.enable_data_ui()
-            self.ui.pushButton_autophasescan.setEnabled(False)
+            self.ui_motor.pushButton_autophasescan.setEnabled(False)
     @asyncSlot()
     async def ui_auto_phase_scan(self):
         #####DISABLE BUTTON
-        self.ui.pushButton_autophasescan.setEnabled(False)
+        self.ui_motor.pushButton_autophasescan.setEnabled(False)
         result=self.auto_scan_dlg.exec_()
         if result==QDialog.Accepted:
             speed=self.auto_scan_dlg.vec
@@ -381,26 +419,26 @@ class MainWindow(QDialog):
         self.ui.lineEdit_currcavpos.setEnabled(False)
         self.ui.lineEdit_inputphase.setEnabled(False)
         self.ui.lineEdit_vnc_phase.setEnabled(False)
-        self.ui.lineEdit_relpos.setEnabled(False)
-        self.ui.lineEdit_relvec.setEnabled(False)
+        self.ui_motor.lineEdit_relpos.setEnabled(False)
+        self.ui_motor.lineEdit_relvec.setEnabled(False)
     def enable_data_ui(self):
         self.ui.spinBox_cavid.setEnabled(True)
         self.ui.lineEdit_cav_phase.setEnabled(True)
         self.ui.lineEdit_currcavpos.setEnabled(True)
         self.ui.lineEdit_inputphase.setEnabled(True)
         self.ui.lineEdit_vnc_phase.setEnabled(True)
-        self.ui.lineEdit_relpos.setEnabled(True)
-        self.ui.lineEdit_relvec.setEnabled(True)
+        self.ui_motor.lineEdit_relpos.setEnabled(True)
+        self.ui_motor.lineEdit_relvec.setEnabled(True)
     def disable_motor_buttons(self):
-        self.ui.pushButton_setpos.setEnabled(False)
-        self.ui.pushButton_resetpos.setEnabled(False)
-        self.ui.pushButton_addmov.setEnabled(False)
+        self.ui_motor.pushButton_setpos.setEnabled(False)
+        self.ui_motor.pushButton_resetpos.setEnabled(False)
+        self.ui_motor.pushButton_addmov.setEnabled(False)
         self.ui.pushButton_savecavpos.setEnabled(False)
         self.ui.pushButton_movetocavpos.setEnabled(False)
     def enable_motor_buttons(self):
-        self.ui.pushButton_setpos.setEnabled(True)
-        self.ui.pushButton_resetpos.setEnabled(True)
-        self.ui.pushButton_addmov.setEnabled(True)
+        self.ui_motor.pushButton_setpos.setEnabled(True)
+        self.ui_motor.pushButton_resetpos.setEnabled(True)
+        self.ui_motor.pushButton_addmov.setEnabled(True)
         self.ui.pushButton_savecavpos.setEnabled(True)
         self.ui.pushButton_movetocavpos.setEnabled(True)
     def is_motor_connected(self):
@@ -446,13 +484,13 @@ class MainWindow(QDialog):
                                  f"请先保存当前腔数据")
             return
        
-        if float(self.ui.lineEdit_relpos.text())==float(self.ui.lineEdit_currcavpos.text()):
+        if float(self.ui_motor.lineEdit_relpos.text())==float(self.ui.lineEdit_currcavpos.text()):
             QMessageBox.critical(None, "错误",
                                 f"请先移动电机到下个腔位置")
             return
         
         if self.inst:
-            self.ui.lineEdit_currcavpos.setText(str(self.ui.lineEdit_relpos.text()))
+            self.ui.lineEdit_currcavpos.setText(str(self.ui_motor.lineEdit_relpos.text()))
         target_cavid=int(self.ui.spinBox_cavid.value())+1
         self.model.set_current_cavity_id(target_cavid)
         if not self.model.cavity_id_exists_in_data(target_cavid):
@@ -589,11 +627,11 @@ class MainWindow(QDialog):
     @asyncSlot()
     async def setpos_ui(self):
         try:
-            pos=float(self.ui.lineEdit_relpos.text())
+            pos=float(self.ui_motor.lineEdit_relpos.text())
             if pos>3000:
                 pos=3000
-                self.ui.lineEdit_relpos.setText(str(pos))
-            vel=float(self.ui.lineEdit_relvec.text())
+                self.ui_motor.lineEdit_relpos.setText(str(pos))
+            vel=float(self.ui_motor.lineEdit_relvec.text())
             self.disable_motor_buttons()
             await self._setpos(pos,vel)
             self.enable_motor_buttons()
@@ -604,11 +642,11 @@ class MainWindow(QDialog):
     async def setpos2cavpos(self):
         try:
             postarget=float(self.ui.lineEdit_currcavpos.text())
-            poscurr=float(self.ui.lineEdit_relpos.text())
+            poscurr=float(self.ui_motor.lineEdit_relpos.text())
             if poscurr==postarget:
                 return
-            self.ui.lineEdit_relpos.setText(str(postarget))
-            vel=float(self.ui.lineEdit_relvec.text())
+            self.ui_motor.lineEdit_relpos.setText(str(postarget))
+            vel=float(self.ui_motor.lineEdit_relvec.text())
             self.disable_motor_buttons()
             await self._setpos(postarget,vel)
             self.enable_motor_buttons()
@@ -624,7 +662,7 @@ class MainWindow(QDialog):
             await asyncio.sleep(1)
             await modbus.axis_clear_stop(self.client)
             self.enable_motor_buttons()
-            self.ui.lineEdit_relpos.setText("0")
+            self.ui_motor.lineEdit_relpos.setText("0")
             return
         except:
             return
@@ -632,16 +670,16 @@ class MainWindow(QDialog):
     async def addmov(self):
 
         try: 
-            extpos=float(self.ui.lineEdit_movpos.text())
+            extpos=float(self.ui_motor.lineEdit_movpos.text())
             if extpos>1000:
                 extpos=1000
-                self.ui.lineEdit_movpos.setText(str(extpos))
+                self.ui_motor.lineEdit_movpos.setText(str(extpos))
             elif extpos<-1000:
                 extpos=-1000
-                self.ui.lineEdit_movpos.setText(str(extpos))
-            pos=float(self.ui.lineEdit_relpos.text())
+                self.ui_motor.lineEdit_movpos.setText(str(extpos))
+            pos=float(self.ui_motor.lineEdit_relpos.text())
             newpos=pos+extpos
-            self.ui.lineEdit_relpos.setText(str(newpos))
+            self.ui_motor.lineEdit_relpos.setText(str(newpos))
             await self.setpos_ui()
             return
         except:
@@ -694,7 +732,7 @@ class MainWindow(QDialog):
         if self.current_is_input_coupler():
             return
         
-        self.ui.lineEdit_currcavpos.setText(self.ui.lineEdit_realpos.text())
+        self.ui.lineEdit_currcavpos.setText(self.ui_motor.lineEdit_realpos.text())
         # print("currpos:",self.ui.lineEdit_currcavpos.text())
         #self._saveline_reduced()
         pass
@@ -877,6 +915,8 @@ class MainWindow(QDialog):
             await modbus.stop_async_simple_client(self.client)
         if self.rm and self.inst:
             vnc.close_visa_client(self.rm,self.inst)
+        self.phase_view_dlg.close()
+        self.motor_control_dlg.close()
         self.app.stop_app()
         self.client = None
         self.rm = None
@@ -887,13 +927,13 @@ class MainWindow(QDialog):
         if self.client is None:
             print("Modbus server failed to connect.")
             return
-        self.ui.lineEdit_relvec.setText(str(await modbus.read_float(self.client,"PC_M6_Realtive_Vel1")))
-        self.ui.lineEdit_relpos.setText(str(await modbus.read_float(self.client,"PC_M6_Realtive_Pos1")))
+        self.ui_motor.lineEdit_relvec.setText(str(await modbus.read_float(self.client,"PC_M6_Realtive_Vel1")))
+        self.ui_motor.lineEdit_relpos.setText(str(await modbus.read_float(self.client,"PC_M6_Realtive_Pos1")))
     async def query_modbus_period(self):
         while True:
             if self.client:
-                self.ui.lineEdit_realpos.setText(str(await modbus.read_float(self.client,"PC_M6_Act_Pos1")))
-                self.ui.lineEdit_realvec.setText(str(await modbus.read_float(self.client,"PC_M6_Act_Vel1")))
+                self.ui_motor.lineEdit_realpos.setText(str(await modbus.read_float(self.client,"PC_M6_Act_Pos1")))
+                self.ui_motor.lineEdit_realvec.setText(str(await modbus.read_float(self.client,"PC_M6_Act_Vel1")))
             
                 # print("query_loc:",self.ui.lineEdit_realpos.text())
                 # print("now sleep")
@@ -929,8 +969,8 @@ class MainWindow(QDialog):
         await task_app
         event_loop.create_task(self.query_app_first())
         
-        task1=event_loop.create_task(self.start_modbus_client_ui())
-        task2=event_loop.create_task(self.start_vnc_client_ui())
+        task1=event_loop.create_task(self.start_modbus_client_ui(),name="start_modbus_client")
+        task2=event_loop.create_task(self.start_vnc_client_ui(),name="start_vnc_client")
         
         
         await task1
