@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>858</width>
+    <width>923</width>
     <height>94</height>
    </rect>
   </property>
@@ -58,7 +58,7 @@
       </font>
      </property>
      <property name="text">
-      <string>0</string>
+      <string>-000.000</string>
      </property>
      <property name="readOnly">
       <bool>true</bool>
@@ -104,6 +104,9 @@
        <weight>50</weight>
        <bold>false</bold>
       </font>
+     </property>
+     <property name="text">
+      <string>-000.000</string>
      </property>
      <property name="readOnly">
       <bool>true</bool>

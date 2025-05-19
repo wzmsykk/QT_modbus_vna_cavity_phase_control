@@ -355,7 +355,7 @@ class MainWindow(QDialog):
     @asyncSlot()
     async def _auto_phase_scan(self,speed:float=10.0,waittime:float=5.0):
         #####check status
-        unsafe_run=True
+        unsafe_run=False
         if not self.is_vnc_connected():
             if not unsafe_run:
                 self.automode_helper_signal.emit("VNC_DISCONNECTED")

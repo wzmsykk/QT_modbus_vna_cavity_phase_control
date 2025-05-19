@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
-        Dialog.resize(858, 94)
+        Dialog.resize(923, 94)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -89,5 +89,6 @@ class Ui_Dialog(object):
         _translate = QtCore.QCoreApplication.translate
         Dialog.setWindowTitle(_translate("Dialog", "相位显示"))
         self.label_13.setText(_translate("Dialog", "VNA相位(deg)"))
-        self.lineEdit_vnc_phase_view.setText(_translate("Dialog", "0"))
+        self.lineEdit_vnc_phase_view.setText(_translate("Dialog", "-000.000"))
         self.label_19.setText(_translate("Dialog", "目标相位(deg)"))
+        self.lineEdit_targetphase_average_view.setText(_translate("Dialog", "-000.000"))
