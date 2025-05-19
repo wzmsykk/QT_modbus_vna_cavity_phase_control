@@ -727,6 +727,7 @@ class MainWindow(QDialog):
         
     def set_current_vnc_phase_as_cavity_phase(self):
         self.ui.lineEdit_cav_phase.setText(self.ui.lineEdit_vnc_phase.text())
+        self.update_phase_calc()
         #self._saveline_reduced(new=True)
 
     def lock_inputphase(self):
