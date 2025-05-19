@@ -1,7 +1,7 @@
 Cavity Material =                       copper
 Cavity and gas temperatures =            equal
 Expansion coefficient for other =    18.000000 x 10^-6/C
-Ambient-condition gas =               nitrogen
+Ambient-condition gas =                    air
 Vacuum frequency =                 2998.739980 MHz
 Ambient cavity temperature =         29.160000 C
 Operating temperature =              30.000000 C
@@ -11,7 +11,7 @@ Relative humidity =                   1.260000 %
 Saturated vapor pressure =           30.327960 mm Hg
 Partial pressure of gas             725.677577 mm Hg
 Partial pressure of water =           0.382132 mm Hg
-Dielectric constant =                1.0005109
-Ambient frequency =                2998.016858 MHz
-F(ambient) - F(vacuum) =             -0.723122 MHz
+Dielectric constant =                1.0005013
+Ambient frequency =                2998.031243 MHz
+F(ambient) - F(vacuum) =             -0.708737 MHz
 Expansion coefficient =              16.903072 x 10^-6/C

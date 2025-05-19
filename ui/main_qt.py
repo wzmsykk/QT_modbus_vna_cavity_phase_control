@@ -47,7 +47,7 @@ class MainWindow(QDialog):
         #self.message_box.finished.connect(self._message_box_results)
         #########INIT AUTO PHASE SCAN DIALOG
         self.auto_scan_dlg = AutoPhaseScanDialog()
-        self.auto_scan_dlg.setModal(True)
+        self.auto_scan_dlg.setModal(False)
         #########INIT PHASE VIEW DIALOG
         self.phase_view_dlg = PhaseViewDialog()
         self.ui_phase=self.phase_view_dlg.ui
@@ -345,7 +345,7 @@ class MainWindow(QDialog):
     async def ui_auto_phase_scan(self):
         #####DISABLE BUTTON
         self.ui_motor.pushButton_autophasescan.setEnabled(False)
-        result=self.auto_scan_dlg.exec_()
+        result=self.auto_scan_dlg.show()
         if result==QDialog.Accepted:
             speed=self.auto_scan_dlg.vec
             waitime=self.auto_scan_dlg.waittime
