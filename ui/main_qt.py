@@ -351,7 +351,7 @@ class MainWindow(QDialog):
             waitime=self.auto_scan_dlg.waittime
             await self._auto_phase_scan(speed,waitime)
         #####ENABLE BUTTON
-        self.ui.pushButton_autophasescan.setEnabled(True)
+        self.ui_motor.pushButton_autophasescan.setEnabled(True)
     @asyncSlot()
     async def _auto_phase_scan(self,speed:float=10.0,waittime:float=5.0):
         #####check status
