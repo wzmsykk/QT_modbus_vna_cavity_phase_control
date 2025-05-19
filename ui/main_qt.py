@@ -754,7 +754,7 @@ class MainWindow(QDialog):
         if self.current_is_input_coupler():
             return
         
-        self.ui.lineEdit_currcavpos.setText(self.ui.lineEdit_relpos.text())
+        self.ui.lineEdit_currcavpos.setText(self.ui_motor.lineEdit_relpos.text())
         # print("currpos:",self.ui.lineEdit_currcavpos.text())
         #self._saveline_reduced()
         pass
