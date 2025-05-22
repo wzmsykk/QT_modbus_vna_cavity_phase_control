@@ -45,10 +45,10 @@ import win32ui
 import six
 import sys
 
-try:
-    from PIL import ImageGrab, Image
-except ImportError:
-    ImageGrab = None
+# try:
+#     from PIL import ImageGrab, Image
+# except ImportError:
+ImageGrab = None
 
 from . import keyboard
 from . import win32defines, win32structures, win32functions

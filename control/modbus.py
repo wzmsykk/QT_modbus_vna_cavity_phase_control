@@ -1,8 +1,5 @@
 import asyncio
 import struct
-import time
-import os,subprocess
-from numpy import require
 import pymodbus.client as ModbusClient
 from pymodbus.exceptions import ConnectionException
 from pymodbus import (

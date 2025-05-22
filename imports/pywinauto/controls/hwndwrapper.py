@@ -67,10 +67,10 @@ from ..win32_element_info import HwndElementInfo
 from .. import backend
 
 # I leave this optional because PIL is a large dependency
-try:
-    from PIL import ImageGrab
-except ImportError:
-    ImageGrab = None
+# try:
+#     from PIL import ImageGrab
+# except ImportError:
+ImageGrab = None
 
 # also import MenuItemNotEnabled so that it is
 # accessible from HwndWrapper module

@@ -40,12 +40,12 @@ from typing_extensions import Literal
 from . import constants, logger
 
 np: Optional[ModuleType]
-try:
-    import numpy
+# try:
+#     import numpy
 
-    np = numpy
-except ImportError:
-    np = None
+#     np = numpy
+# except ImportError:
+np = None
 
 
 #: Length of the header found before a binary block (ieee or hp) that will

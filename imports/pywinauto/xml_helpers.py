@@ -50,11 +50,11 @@ else:
     from base64 import encodestring as encodebytes
     from base64 import decodestring as decodebytes
 
-try:
-    import PIL.Image
-    PIL_imported = True
-except ImportError:
-    PIL_imported = False
+# try:
+#     import PIL.Image
+#     PIL_imported = True
+# except ImportError:
+PIL_imported = False
 from . import controls
 
 # reported that they are not used - but in fact they are
