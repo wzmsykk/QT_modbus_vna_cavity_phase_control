@@ -10,20 +10,18 @@ class AutoPhaseScanDialog(QDialog):
         self.vec=10
         self.waittime=5
         self._set_signal_slots()
-    def _set_signal_slots(self):
-        self.ui.lineEdit_relvec.textEdited.connect(self._on_relvec_changed)
-        self.ui.lineEdit_waittime.textEdited.connect(self._on_waittime_changed)
-    def _on_relvec_changed(self):
-        try:
-            self.vec = float(self.ui.lineEdit_relvec.text())
-        except ValueError:
-            return
+    def on_accept(self):
+        self.vec = float(self.ui.lineEdit_relvec.text())
+        self.waittime = float(self.ui.lineEdit_waittime.text())
         if self.vec < 0:
             self.vec = 10
-    def _on_waittime_changed(self):
-        try:
-            self.waittime = float(self.ui.lineEdit_waittime.text())
-        except ValueError:
-            return
         if self.waittime < 0:
             self.waittime = 5
+    def _set_signal_slots(self):
+        self.ui.buttonBox.accepted.connect(self.on_accept)
+        self.ui.buttonBox.rejected.connect(self.on_cancel)
+    def on_cancel(self):
+        self.ui.lineEdit_relvec.setText(str(self.vec))
+        self.ui.lineEdit_waittime.setText(str(self.waittime))
+
+        

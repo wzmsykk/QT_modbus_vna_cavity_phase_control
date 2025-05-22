@@ -166,6 +166,7 @@ class MainWindow(QDialog):
         ###AUTO MODE
         self.ui_motor.checkBox_automode.clicked.connect(self.automode_clicked)
         self.ui_motor.pushButton_autophasescan.clicked.connect(self.ui_auto_phase_scan)
+        self.ui_motor.pushButton_auto_setting.clicked.connect(self.auto_phase_scan_settings)
         ###AUTO MODE HELPER
         self.automode_helper_signal.connect(self.automode_helper_slot)
 
@@ -328,12 +329,14 @@ class MainWindow(QDialog):
             QMessageBox.warning(None, "警告", 
                             f"未设置初始相位，请设置初始相位后继续。")
             self.ui_motor.checkBox_automode.setChecked(False)
+            self.ui_motor.pushButton_auto_setting.setEnabled(True)
             return
         if self.ui_motor.checkBox_automode.isChecked():
             self.disable_motor_buttons()
             self.disable_vnc_buttons()
             self.disable_data_ui()
             self.ui_motor.pushButton_autophasescan.setEnabled(True)
+            self.ui_motor.pushButton_auto_setting.setEnabled(False)
             QMessageBox.warning(None, "警告", 
                             f"自动模式会覆盖之前保存的相位数据，请先确认数据已经保存。")
         else:
@@ -341,17 +344,21 @@ class MainWindow(QDialog):
             self.enable_vnc_buttons()
             self.enable_data_ui()
             self.ui_motor.pushButton_autophasescan.setEnabled(False)
+            self.ui_motor.pushButton_auto_setting.setEnabled(True)
     @asyncSlot()
     async def ui_auto_phase_scan(self):
         #####DISABLE BUTTON
         self.ui_motor.pushButton_autophasescan.setEnabled(False)
-        result=self.auto_scan_dlg.show()
-        if result==QDialog.Accepted:
-            speed=self.auto_scan_dlg.vec
-            waitime=self.auto_scan_dlg.waittime
-            await self._auto_phase_scan(speed,waitime)
+        speed=self.auto_scan_dlg.vec
+        waitime=self.auto_scan_dlg.waittime
+        await self._auto_phase_scan(speed,waitime)
+
+        print("auto phase scan cancelled")
+            
         #####ENABLE BUTTON
         self.ui_motor.pushButton_autophasescan.setEnabled(True)
+    def auto_phase_scan_settings(self):
+        self.auto_scan_dlg.show()
     @asyncSlot()
     async def _auto_phase_scan(self,speed:float=10.0,waittime:float=5.0):
         #####check status

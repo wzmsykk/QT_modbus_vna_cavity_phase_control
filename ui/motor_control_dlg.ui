@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>169</width>
-    <height>539</height>
+    <width>199</width>
+    <height>568</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -106,13 +106,20 @@
                <enum>Qt::NoFocus</enum>
               </property>
               <property name="text">
-               <string>自动扫描相位</string>
+               <string>开始自动扫描</string>
               </property>
               <property name="checkable">
                <bool>false</bool>
               </property>
               <property name="flat">
                <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_auto_setting">
+              <property name="text">
+               <string>扫描设置</string>
               </property>
              </widget>
             </item>

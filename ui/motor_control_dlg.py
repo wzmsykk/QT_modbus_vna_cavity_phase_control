@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
-        Dialog.resize(169, 539)
+        Dialog.resize(199, 568)
         self.horizontalLayout = QtWidgets.QHBoxLayout(Dialog)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.groupBox_3 = QtWidgets.QGroupBox(Dialog)
@@ -78,6 +78,9 @@ class Ui_Dialog(object):
         self.pushButton_autophasescan.setFlat(False)
         self.pushButton_autophasescan.setObjectName("pushButton_autophasescan")
         self.verticalLayout_10.addWidget(self.pushButton_autophasescan)
+        self.pushButton_auto_setting = QtWidgets.QPushButton(self.frame)
+        self.pushButton_auto_setting.setObjectName("pushButton_auto_setting")
+        self.verticalLayout_10.addWidget(self.pushButton_auto_setting)
         self.verticalLayout_5.addWidget(self.frame)
         self.widget_7 = QtWidgets.QWidget(self.widget_5)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
@@ -204,7 +207,8 @@ class Ui_Dialog(object):
         self.groupBox_3.setTitle(_translate("Dialog", "运动控制"))
         self.label_20.setText(_translate("Dialog", "自动模式：对相位进行自动扫描。要求每个腔的位置都已保存"))
         self.checkBox_automode.setText(_translate("Dialog", "自动模式"))
-        self.pushButton_autophasescan.setText(_translate("Dialog", "自动扫描相位"))
+        self.pushButton_autophasescan.setText(_translate("Dialog", "开始自动扫描"))
+        self.pushButton_auto_setting.setText(_translate("Dialog", "扫描设置"))
         self.pushButton_stopmov.setText(_translate("Dialog", "停止移动"))
         self.pushButton_continuemov.setText(_translate("Dialog", "继续移动"))
         self.label_11.setText(_translate("Dialog", "设定速度(mm/s)"))
