@@ -1,10 +1,8 @@
 
 import datetime
-import re
 from PyQt5 import QtCore
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtCore import pyqtSignal
-import pandas as pd
 import csv
 from math import tan, pi
 class CavityPhaseModel(QStandardItemModel):
@@ -275,34 +273,45 @@ class CavityPhaseModel(QStandardItemModel):
         return dmid
     def save_csv(self,file_path:str):
         with open(file_path, 'w', newline='', encoding='utf-8-sig') as csvfile:
-                writer = csv.writer(csvfile)
-                
-                # 写入表头
-                header = []
+            writer = csv.writer(csvfile)
+            
+            # 写入表头
+            header = []
+            for col in range(self.columnCount()):
+                header.append(self.headerData(col, QtCore.Qt.Horizontal))
+            writer.writerow(header)
+            
+            # 写入数据行
+            for row in range(self.rowCount()):
+                row_data = []
                 for col in range(self.columnCount()):
-                    header.append(self.headerData(col, QtCore.Qt.Horizontal))
-                writer.writerow(header)
-                
-                # 写入数据行
-                for row in range(self.rowCount()):
-                    row_data = []
-                    for col in range(self.columnCount()):
-                        item = self.item(row, col)
-                        row_data.append(item.text() if item else "")
-                    writer.writerow(row_data)
+                    item = self.item(row, col)
+                    row_data.append(item.text() if item else "")
+                writer.writerow(row_data)
 
     def read_csv(self,file_path:str):
         self._reset_data()
-        df=pd.read_csv(file_path,header=0)
-        columns=df.columns.tolist()
-        if not self._list_eq(columns,self.columnname):
-            raise ValueError("CSV文件列名不匹配")
-        for i in range(len(df)):
-            row=df.iloc[i]
-            qrow=[QStandardItem(str(item)) for item in row]
-            self.insertRow(i,qrow)
-        ###update input coupler phase
+        with open(file_path, 'r', newline='', encoding='utf-8-sig') as csvfile:
+            reader = csv.reader(csvfile)
+            header = next(reader)
+            columns = [col for col in header]
+            print(columns)
+            if not self._list_eq(columns,self.columnname):
+                raise ValueError("CSV文件列名不匹配")
+            for i,row in enumerate(reader):
+                qrow = [QStandardItem(str(item)) for item in row]
+                self.insertRow(i,qrow)
         self.input_coupler_phase=float(self.item(0,self._get_column_index(self._input_coupler_phase_string)).text())
+        # df=pd.read_csv(file_path,header=0)
+        # columns=df.columns.tolist()
+        # if not self._list_eq(columns,self.columnname):
+        #     raise ValueError("CSV文件列名不匹配")
+        # for i in range(len(df)):
+        #     row=df.iloc[i]
+        #     qrow=[QStandardItem(str(item)) for item in row]
+        #     self.insertRow(i,qrow)
+        # ###update input coupler phase
+        # self.input_coupler_phase=float(self.item(0,self._get_column_index(self._input_coupler_phase_string)).text())
     def get_cavity_id_list(self):
         rowCount=self.rowCount()
         if rowCount==0:
