@@ -9,10 +9,17 @@ class ConvertfApp():
         self.set_pressure_Pa()
         self.set_air()
         self.set_convert_type(ctype=self.ctype)
+        self.filename="XFREQ.TXT"
         pass
+    def get_file_content(self):
+        with open(self.filename, 'r') as file:
+            file_content = file.readlines()
+            return file_content
+        return None
     def start_app(self):
         app = application.Application()
         app.start(cmd_line='data/CONVERTF.EXE')
+
         main_window=app["Resonant Frequency Conversion"]
         main_window.wait("visible", timeout=10)
         main_window.minimize()
@@ -21,6 +28,9 @@ class ConvertfApp():
         self.app["Resonant Frequency Conversion"]['Stop programButton'].click()
         self.app.kill()
         print("Convertf app closed")
+    def check_app(self):
+        if not self.app.is_process_running():
+            self.app=self.start_app()
     def set_temp_celsius(self):
         self.app["Resonant Frequency Conversion"]['degrees C'].click()
     def set_pressure_mBar(self):
@@ -61,6 +71,9 @@ class ConvertfApp():
         self.app["Resonant Frequency Conversion"]["Edit6"].set_text(str(temp))
 
     def get_origin_freq(self):
+        r=self.get_file_content()
+        if r is not None:
+            return r[4].split()[3]
         return self.app["Resonant Frequency Conversion"]["Edit5"].texts()[0]      
     def set_origin_freq(self,freq:float):
         self.app["Resonant Frequency Conversion"]["Edit5"].set_text(str(freq))
@@ -87,6 +100,7 @@ class ConvertfApp():
         return
 
     def get_results(self):
+        self.check_app()
         result=self.app["Resonant Frequency Conversion"]['Edit8'].texts()
         freq=float(result[1].split()[3])
         offset=float(result[2].split()[3])

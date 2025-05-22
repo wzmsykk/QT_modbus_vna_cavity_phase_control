@@ -760,6 +760,7 @@ class MainWindow(QDialog):
         #self._saveline_reduced()
         pass
     def freqcor(self):
+        self.app.check_app()
         self.app.set_rel_humid(float(self.ui.lineEdit_humidity.text()))
         self.app.set_amb_pressure(float(self.ui.lineEdit_airpressure.text()))
 
