@@ -161,7 +161,7 @@ class MainWindow(QDialog):
 
         ###RECONNECT BUTTONS
         self.ui.pushButton_reconnectmotor.clicked.connect(self.start_modbus_client_button)
-        self.ui.pushButton_reconnectVNC.clicked.connect(self.start_vnc_client_button)
+        self.ui.pushButton_reconnectVNC.clicked.connect(self.start_vna_client_button)
 
         ###AUTO MODE
         self.ui_motor.checkBox_automode.clicked.connect(self.automode_clicked)
@@ -1004,27 +1004,35 @@ class MainWindow(QDialog):
         await task_app
         event_loop.create_task(self.query_app_first())
         
-        task1=event_loop.create_task(self.start_modbus_client_ui(),name="start_modbus_client")
-        task2=event_loop.create_task(self.start_vnc_client_ui(),name="start_vnc_client")
+        task1=event_loop.create_task(self.start_modbus_with_query(),name="start_modbus_with_query")
+        task2=event_loop.create_task(self.start_vna_client_with_query(),name="start_vna_client_with_query")
         
         
         await task1
         await task2
+       
         
+    async def start_vna_client_with_query(self):
+        event_loop=asyncio.get_event_loop()
+        task=event_loop.create_task(self.start_vna_client_ui(),name="start_vnc_client")
+        await task
+        event_loop.create_task(self.query_vnc_period(),name="query_vnc_period")
+    async def start_modbus_with_query(self):
+        event_loop=asyncio.get_event_loop()
+        task=event_loop.create_task(self.start_modbus_client_ui(),name="start_modbus_client")
+        await task
         await self.query_modbus_first()
         event_loop.create_task(self.query_modbus_period(),name="query_modbus_period")
-        event_loop.create_task(self.query_vnc_period(),name="query_vnc_period")
-        
 
     @asyncSlot()
-    async def start_vnc_client_button(self):
-        result=await self.start_vnc_client_ui(restart=True,retry_times=3)
+    async def start_vna_client_button(self):
+        result=await self.start_vna_client_ui(restart=True,retry_times=3)
         return result
-    async def start_vnc_client_ui(self,restart=False,retry_times=3):
-        result=await self.start_vnc_client(restart,retry_times)
-        print("starting_vnc_client:",result)
+    async def start_vna_client_ui(self,restart=False,retry_times=3):
+        result=await self.start_vna_client(restart,retry_times)
+        print("starting_vna_client_result:",result)
         self.ui.checkBox_VNCstat.setChecked(result)
-    async def start_vnc_client(self,restart=False,retry_times=3):
+    async def start_vna_client(self,restart=False,retry_times=3):
         if self.inst is not None:
             if restart:
                 vnc.close_visa_client(self.rm,self.inst)
