@@ -15,7 +15,7 @@ def create_visa_client():
 def close_visa_client(rm:ResourceManager, inst:Resource):
     inst.close()
     rm.close()
-    print("VNC client closed")
+    print("VNA client closed")
 def query_visa_client(inst:Resource, cmd:str):
     result = inst.query(cmd)
     return result
@@ -23,21 +23,24 @@ def query_visa_client(inst:Resource, cmd:str):
 def query_inst_name(inst:Resource):
     name = inst.query("*IDN?")
     return name
-
+def query_inst_measurement(inst:Resource):
+    result = inst.query("SYST:ACT:MEAS?")
+    return result
 def query_inst_calc(inst:Resource):
     result = inst.query("CALC:PAR:CAT?")
     return result
 def set_meas_mode(inst:Resource):
-    inst.write("CALC:PAR:SEL 'S11'")
-    inst.write("CALC:MEAS:FORM PHASe")
+    mea=query_inst_measurement(inst)
+    inst.write("CALC:PAR:SEL " + mea)
+    inst.write("CALC:MEAS:FORM PHASE")
     inst.write("CALC:MEAS:MARK:STAT ON")
 def query_inst_mark(inst:Resource):
     result = inst.query("CALC:MEAS:MARK:Y?")
-
     return result
 def convert_mark_result(result:str):
     
     fresult=float(result.split(",")[0])
+    # print(f"Phase: {fresult} dB")
     return fresult
 
 def get_phase(inst:Resource):
