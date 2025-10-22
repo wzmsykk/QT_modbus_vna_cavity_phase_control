@@ -84,7 +84,8 @@ class MainWindow(QDialog):
         self.setup_text()
         
         self.query_delay=1 ## in seconds
-        
+        self.query_vna_delay=0.2 ## in seconds
+        self.query_modbus_delay=1 ## in seconds
         self.ui.tabWidget.setTabVisible(3, False) ##hide advanced tab
         self._set_signal_slots()
         self._set_data_edited_signals()
@@ -972,7 +973,7 @@ class MainWindow(QDialog):
             
                 # print("query_loc:",self.ui.lineEdit_realpos.text())
                 # print("now sleep")
-            await asyncio.sleep(self.query_delay)
+            await asyncio.sleep(self.query_modbus_delay)
     async def query_vnc_period(self):
         while True:
             if self.inst:
@@ -984,7 +985,7 @@ class MainWindow(QDialog):
                     # print("query_vnc:",self.ui.lineEdit_vnc_phase.text())
                 else:
                     self.ui.lineEdit_vnc_phase.setStyleSheet("color: rgb(255, 0, 0);")
-            await asyncio.sleep(self.query_delay)
+            await asyncio.sleep(self.query_vna_delay)
     async def query_app_first(self):
         self.ui.lineEdit_humidity.setText(str(self.app.get_rel_humid()))
         self.ui.lineEdit_airpressure.setText(str(self.app.get_amb_pressure()))
