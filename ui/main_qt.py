@@ -225,7 +225,7 @@ class MainWindow(QDialog):
             self.coupler_calc.fm=fm
             self.coupler_calc.fl=fl
             
-            self.ui.lineEdit_couper_calc_fpi_2_corrected.setText(str(self.coupler_calc.fc_c))
+            self.ui.lineEdit_couper_calc_fpi_2_corrected.setText(str(self.coupler_calc.fl_c))
             self.ui.lineEdit_couper_calc_fmean_corrected.setText(str(self.coupler_calc.fm_c))
             self.ui.lineEdit_couper_calc_f2pi_3_corrected.setText(str(self.coupler_calc.fc_c))
         except:

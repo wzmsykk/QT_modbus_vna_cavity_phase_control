@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>923</width>
+    <width>975</width>
     <height>94</height>
    </rect>
   </property>
@@ -64,6 +64,26 @@
       <bool>true</bool>
      </property>
      <property name="clearButtonEnabled">
+      <bool>false</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_phase_compare">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>48</pointsize>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string>=</string>
+     </property>
+     <property name="scaledContents">
       <bool>false</bool>
      </property>
     </widget>
